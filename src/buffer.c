@@ -136,7 +136,6 @@ void gap_move(Row *row, int logical_index) {
 }
 
 void gap_grow(Row *row) {
-  int left_size = row->gap_start;
   int old_gap_size = row->gap_end - row->gap_start;
   int right_size = row->capacity - row->gap_end;
 
@@ -151,11 +150,13 @@ void gap_grow(Row *row) {
   row->gap_end = row->gap_start + new_gap_size;
   row->capacity = new_capacity;
   memcpy(row->text + row->gap_end, right_text, right_size);
+
+  free(right_text);
  
   return;
 }
 
-void buffer_insert(TextBuffer *buf, int row, int col, char c) {
+void buffer_insert_c(TextBuffer *buf, int row, int col, char c) {
   const int GAP_MIN = 8;
   Row *r = buf->rows[row];
 
@@ -173,6 +174,15 @@ void buffer_insert(TextBuffer *buf, int row, int col, char c) {
   return;
 }
 
-// void buffer_delete() {
-//   return;
-// }
+void buffer_backspace_c(TextBuffer *buf, int row, int col) {
+  Row *r = buf->rows[row];
+
+  if (r->gap_start == 0) {
+    return;
+  }
+  if (r->gap_start != col) {
+    gap_move(r, col);
+  }
+  r->gap_start--;
+  return;
+}

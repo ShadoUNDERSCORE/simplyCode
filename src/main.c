@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 
   char *new_text = "way ";
   for (int i = 0; i < 4; i++) {
-    buffer_insert(buf, 7, 9+i, new_text[i]);
+    buffer_insert_c(buf, 7, 9+i, new_text[i]);
   }
 
   for (int i = 0; i < buf->row_count; i++) {
@@ -56,6 +56,8 @@ int main(int argc, char *argv[]) {
   } 
 
   buffer_save(buf, "test2.txt");
+  buffer_backspace_c(buf, 7, 41);
+  buffer_save(buf, "test3.txt");
   free(buf);
   buf = NULL;
   // cleanup memory
