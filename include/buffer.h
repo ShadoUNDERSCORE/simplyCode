@@ -24,5 +24,5 @@ void buffer_free(TextBuffer *buf);
 void buffer_save(TextBuffer *buf, const char *path);
 void gap_move(Row *row, int index);
 void gap_grow(Row *row);
-void buffer_insert_c(TextBuffer *buf, int row, int col, char c);
-void buffer_backspace_c(TextBuffer *buf, int row, int col);
+void buffer_insert_char(TextBuffer *buf, int row, int col, char c);
+void buffer_backspace_char(TextBuffer *buf, int row, int col);

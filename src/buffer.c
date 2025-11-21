@@ -4,62 +4,42 @@ TextBuffer *buffer_load(const char *path) {
 
   enum break_state {OK, LEVEL1_ERR, LEVEL2_ERR};
   enum break_state health = OK;
-  
+
   FILE *stream = fopen(path, "r");
   if (!stream) {return NULL;}
 
   int init_capacity = 128;
   TextBuffer *buf = malloc(sizeof(TextBuffer));
-  buf->rows = malloc(sizeof(Row*) * init_capacity);
+  buf->rows = malloc(sizeof(Row *) * init_capacity);
   if (!buf->rows) {health = LEVEL1_ERR;}
   buf->row_count = 0;
   buf->capacity = init_capacity;
 
-  const int BASE_ALLOC = 128;
-  char *s = malloc(BASE_ALLOC + 1);
-  if (!s) {health = LEVEL1_ERR;}
+  char *line = NULL;
+  size_t linecap = 0;
+  ssize_t linelen;
 
-  if (health == OK) {
-    while (fgets(s, BASE_ALLOC, stream)) { 
-      int len = strlen(s);
-      int buffer_size = BASE_ALLOC;
-      if (len > 0) {
-        while (s[len - 1] != '\n') {
-          buffer_size += BASE_ALLOC;
-          s = realloc(s, buffer_size + 1);
-          if (!s) {health = LEVEL1_ERR; break;}
-          if (!fgets(s + len, buffer_size - len + 1, stream)) {
-            len += strlen(s + len);
-            break;
-          }
-          len += strlen(s + len);
-        }
-      }
-      if (health != OK) {break;}
+  while ((linelen = getline(&line, &linecap, stream)) != -1) {
+    int text_len = linelen;
+    int gap_size = text_len < 32 ? 32 : text_len / 2 + 16;
+    int row_size = text_len + gap_size;
 
-      int init_gap = len / 2 + 16; // TODO: make this smarter.
-      int row_size = len + init_gap;
-
-      Row *new_row = malloc(sizeof(Row));
-      if (!new_row) {health = LEVEL2_ERR; break;}
-      new_row->text = malloc(row_size);
-      if (!new_row->text) {health = LEVEL2_ERR; break;}
-      strcpy(new_row->text, s);
-      memset(new_row->text + len, 0, row_size - len);
-      new_row->gap_start = len;
-      new_row->gap_end = row_size;
-      new_row->capacity = row_size;
-      
-      if (buf->row_count == buf->capacity - 1) {
-        const int N_NEW_LINES = 64;
-        buf->rows = realloc(buf->rows, (buf->capacity + N_NEW_LINES) * sizeof(Row*));
-        if (!buf->rows) {health = LEVEL2_ERR; break;}
-        buf->capacity += N_NEW_LINES;
-      }
-      buf->rows[buf->row_count] = new_row;
-      buf->row_count++;
-
+    Row *new_row = malloc(sizeof(Row));
+    new_row->text = malloc(row_size);
+    memcpy(new_row->text, line, text_len);
+    memset(new_row->text + text_len, 0, gap_size);
+    new_row->gap_start = text_len;
+    new_row->gap_end   = row_size;
+    new_row->capacity  = row_size;
+    
+    if (buf->row_count == buf->capacity - 1) {
+      const int N_NEW_LINES = 64;
+      buf->rows = realloc(buf->rows, (buf->capacity + N_NEW_LINES) * sizeof(Row *));
+      if (!buf->rows) {health = LEVEL2_ERR; break;}
+      buf->capacity += N_NEW_LINES;
     }
+    buf->rows[buf->row_count] = new_row;
+    buf->row_count++;
   }
 
   if (health == LEVEL1_ERR) {
@@ -68,14 +48,12 @@ TextBuffer *buffer_load(const char *path) {
     return NULL;
   } else if (health == LEVEL2_ERR) {
     buffer_free(buf);
-    free(s);
-    s = NULL;
     fclose(stream);
+    free(line);
     return NULL;
   } else {
-    free(s);
-    s = NULL;
     fclose(stream);
+    free(line);
     return buf;
   }
 }
@@ -119,7 +97,7 @@ static int logical_to_physical(Row *row, int logical_index) {
 void gap_move(Row *row, int logical_index) {
   int index = logical_to_physical(row, logical_index);
 
-  if (index > row->gap_start) {
+  if (index > row->gap_end) {
     // move gap right
     int n = index - row->gap_end; // distance between gap_end and index
     memmove(row->text + row->gap_start, row->text + row->gap_end, n);
@@ -156,7 +134,7 @@ void gap_grow(Row *row) {
   return;
 }
 
-void buffer_insert_c(TextBuffer *buf, int row, int col, char c) {
+void buffer_insert_char(TextBuffer *buf, int row, int col, char c) {
   const int GAP_MIN = 8;
   Row *r = buf->rows[row];
 
@@ -174,7 +152,7 @@ void buffer_insert_c(TextBuffer *buf, int row, int col, char c) {
   return;
 }
 
-void buffer_backspace_c(TextBuffer *buf, int row, int col) {
+void buffer_backspace_char(TextBuffer *buf, int row, int col) {
   Row *r = buf->rows[row];
 
   if (r->gap_start == 0) {
