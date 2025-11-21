@@ -2,8 +2,7 @@
 
 TextBuffer *buffer_load(const char *path) {
 
-  enum break_state {OK, LEVEL1_ERR, LEVEL2_ERR};
-  enum break_state health = OK;
+  bool healthy = true;
 
   FILE *stream = fopen(path, "r");
   if (!stream) {return NULL;}
@@ -11,7 +10,7 @@ TextBuffer *buffer_load(const char *path) {
   int init_capacity = 128;
   TextBuffer *buf = malloc(sizeof(TextBuffer));
   buf->rows = malloc(sizeof(Row *) * init_capacity);
-  if (!buf->rows) {health = LEVEL1_ERR;}
+  if (!buf->rows) healthy = false;
   buf->row_count = 0;
   buf->capacity = init_capacity;
 
@@ -25,7 +24,16 @@ TextBuffer *buffer_load(const char *path) {
     int row_size = text_len + gap_size;
 
     Row *new_row = malloc(sizeof(Row));
+    if (!new_row) {
+      healthy = false;
+      break;
+    }
     new_row->text = malloc(row_size);
+    if (!new_row->text) {
+      free(new_row);
+      healthy = false;
+      break;
+    }
     memcpy(new_row->text, line, text_len);
     memset(new_row->text + text_len, 0, gap_size);
     new_row->gap_start = text_len;
@@ -35,27 +43,23 @@ TextBuffer *buffer_load(const char *path) {
     if (buf->row_count == buf->capacity - 1) {
       const int N_NEW_LINES = 64;
       buf->rows = realloc(buf->rows, (buf->capacity + N_NEW_LINES) * sizeof(Row *));
-      if (!buf->rows) {health = LEVEL2_ERR; break;}
+      if (!buf->rows) {
+        healthy = false;
+        break;
+      }
       buf->capacity += N_NEW_LINES;
     }
     buf->rows[buf->row_count] = new_row;
     buf->row_count++;
   }
 
-  if (health == LEVEL1_ERR) {
+  free(line);
+  fclose(stream);
+  if (!healthy) {
     buffer_free(buf);
-    fclose(stream);
     return NULL;
-  } else if (health == LEVEL2_ERR) {
-    buffer_free(buf);
-    fclose(stream);
-    free(line);
-    return NULL;
-  } else {
-    fclose(stream);
-    free(line);
-    return buf;
   }
+  return buf;
 }
 
 void buffer_free(TextBuffer *buf) {
@@ -73,6 +77,7 @@ void buffer_free(TextBuffer *buf) {
 
 void buffer_save(TextBuffer *buf, const char *path) {
   FILE *f = fopen(path, "w");
+  if (!f) return;
   for (int i = 0; i < buf->row_count; i++) {
     int prefix_len = buf->rows[i]->gap_start;
     char *prefix_ptr = buf->rows[i]->text;
@@ -94,7 +99,15 @@ static int logical_to_physical(Row *row, int logical_index) {
   return logical_index + (row->gap_end - row->gap_start);
 }
 
+static int row_logical_len(Row *row) {
+  return row->gap_start + (row->capacity - row->gap_end);
+}
+
 void gap_move(Row *row, int logical_index) {
+  int logical_len = row_logical_len(row);
+  if (logical_index < 0) logical_index = 0;
+  if (logical_index > logical_len) logical_index = logical_len;
+
   int index = logical_to_physical(row, logical_index);
 
   if (index > row->gap_end) {
@@ -138,6 +151,10 @@ void buffer_insert_char(TextBuffer *buf, int row, int col, char c) {
   const int GAP_MIN = 8;
   Row *r = buf->rows[row];
 
+  int logical_len = row_logical_len(r);
+  if (col < 0) col = 0;
+  if (col > logical_len) col = logical_len;
+
   if (col != r->gap_start) {
     gap_move(r, col);
   }
@@ -154,6 +171,10 @@ void buffer_insert_char(TextBuffer *buf, int row, int col, char c) {
 
 void buffer_backspace_char(TextBuffer *buf, int row, int col) {
   Row *r = buf->rows[row];
+
+  int logical_len = row_logical_len(r);
+  if (col < 0) col = 0;
+  if (col > logical_len) col = logical_len;
 
   if (r->gap_start == 0) {
     return;
