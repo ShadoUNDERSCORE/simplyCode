@@ -1,9 +1,7 @@
-#include "editor.h"
-
-EditorState *state = malloc(sizeof(EditorState *));
+#include "../include/editor.h"
 
 void editor_insert_char(EditorState *es, char c) {
-  buffer_insert_char(es->buffer, c);
+  buffer_insert_char(es->buffer, es->cursor_row, es->cursor_col, c);
 }
 
 void editor_delete_char(EditorState *es) {

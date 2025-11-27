@@ -1,10 +1,10 @@
+#ifndef BUFFER_H
+#define BUFFER_H
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-
-
-#include "../include/common.h"
 
 typedef struct {
   char *text;
@@ -26,3 +26,6 @@ void gap_move(Row *row, int index);
 void gap_grow(Row *row);
 void buffer_insert_char(TextBuffer *buf, int row, int col, char c);
 void buffer_backspace_char(TextBuffer *buf, int row, int col);
+
+#endif
+

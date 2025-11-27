@@ -15,11 +15,11 @@ TextBuffer *buffer_load(const char *path) {
   buf->capacity = init_capacity;
 
   char *line = NULL;
-  size_t linecap = 0;
-  ssize_t linelen;
+  size_t line_size = 0;
+  ssize_t line_len;
 
-  while ((linelen = getline(&line, &linecap, stream)) != -1) {
-    int text_len = linelen;
+  while ((line_len = getline(&line, &line_size, stream)) != -1) {
+    int text_len = line_len;
     int gap_size = text_len < 32 ? 32 : text_len / 2 + 16;
     int row_size = text_len + gap_size;
 
@@ -39,7 +39,7 @@ TextBuffer *buffer_load(const char *path) {
     new_row->gap_start = text_len;
     new_row->gap_end   = row_size;
     new_row->capacity  = row_size;
-    
+
     if (buf->row_count == buf->capacity - 1) {
       const int N_NEW_LINES = 64;
       buf->rows = realloc(buf->rows, (buf->capacity + N_NEW_LINES) * sizeof(Row *));

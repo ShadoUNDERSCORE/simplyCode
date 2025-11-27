@@ -3,6 +3,8 @@
 #include <unistd.h> 
 
 #include "../include/buffer.h"
+#include "../include/editor.h"
+#include "../include/tui.h"
 
 void test();
 void debug_print_row(Row *r);
@@ -20,14 +22,14 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  bool running = true;
-  while (running) {
-    // redraw tui state every itteration
-    // handle tui input every itteration
-    running = false;
-  }
+  // test();
+  TextBuffer *buf = buffer_load("test.txt");
 
-  test();
+  EditorState *es = malloc(sizeof(EditorState));
+  es->buffer = buf;
+  es->filename = "test.txt";
+  tui_run(es);
+
 
   // cleanup memory
   return 0;
