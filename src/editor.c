@@ -21,3 +21,20 @@ void editor_move_cursor(EditorState *es, int row, int col) {
   es->cursor_col = col;
   // if cursor is off screen scroll to cursor
 }
+
+int editor_row_len(EditorState *es, int row) {
+  return buffer_row_logical_len(es->buffer->rows[row]);
+}
+
+void editor_get_row_text(EditorState *es, int row, char *logical_text) {
+  int logical_index = 0;
+  for (int i = 0; i < es->buffer->rows[row]->gap_start; i++) {
+    logical_text[i] = es->buffer->rows[row]->text[i];
+    logical_index = i;
+  }
+  for (int i = es->buffer->rows[row]->gap_end; i < es->buffer->rows[row]->capacity; i++) {
+    logical_text[logical_index] = es->buffer->rows[row]->text[i];
+    logical_index++;
+  }
+}
+

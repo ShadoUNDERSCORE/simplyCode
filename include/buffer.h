@@ -26,6 +26,7 @@ void gap_move(Row *row, int index);
 void gap_grow(Row *row);
 void buffer_insert_char(TextBuffer *buf, int row, int col, char c);
 void buffer_backspace_char(TextBuffer *buf, int row, int col);
+int buffer_row_logical_len(Row *row);
 
 #endif
 

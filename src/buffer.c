@@ -99,12 +99,12 @@ static int logical_to_physical(Row *row, int logical_index) {
   return logical_index + (row->gap_end - row->gap_start);
 }
 
-static int row_logical_len(Row *row) {
+int buffer_row_logical_len(Row *row) {
   return row->gap_start + (row->capacity - row->gap_end);
 }
 
 void gap_move(Row *row, int logical_index) {
-  int logical_len = row_logical_len(row);
+  int logical_len = buffer_row_logical_len(row);
   if (logical_index < 0) logical_index = 0;
   if (logical_index > logical_len) logical_index = logical_len;
 
@@ -151,7 +151,7 @@ void buffer_insert_char(TextBuffer *buf, int row, int col, char c) {
   const int GAP_MIN = 8;
   Row *r = buf->rows[row];
 
-  int logical_len = row_logical_len(r);
+  int logical_len = buffer_row_logical_len(r);
   if (col < 0) col = 0;
   if (col > logical_len) col = logical_len;
 
@@ -172,7 +172,7 @@ void buffer_insert_char(TextBuffer *buf, int row, int col, char c) {
 void buffer_backspace_char(TextBuffer *buf, int row, int col) {
   Row *r = buf->rows[row];
 
-  int logical_len = row_logical_len(r);
+  int logical_len = buffer_row_logical_len(r);
   if (col < 0) col = 0;
   if (col > logical_len) col = logical_len;
 

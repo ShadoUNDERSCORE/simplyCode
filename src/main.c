@@ -26,6 +26,8 @@ int main(int argc, char *argv[]) {
   TextBuffer *buf = buffer_load("test.txt");
 
   EditorState *es = malloc(sizeof(EditorState));
+  es->cursor_row = 0;
+  es->cursor_col = 0;
   es->buffer = buf;
   es->filename = "test.txt";
   tui_run(es);
