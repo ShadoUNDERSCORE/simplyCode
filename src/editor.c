@@ -13,7 +13,8 @@ void editor_delete_char(EditorState *es) {
 void editor_backspace_char(EditorState *es) {
   TextBuffer *buf = es->buffer;
   buffer_backspace_char(buf, es->cursor_row, es->cursor_col);
-  es->cursor_col--;
+  // es->cursor_col--;
+  es->cursor_col = es->buffer->rows[es->cursor_row]->gap_start;
 }
 
 void editor_move_cursor(EditorState *es, int row, int col) {
@@ -32,6 +33,7 @@ void editor_get_row_text(EditorState *es, int row, char *logical_text) {
     logical_text[i] = es->buffer->rows[row]->text[i];
     logical_index = i;
   }
+  logical_index++;
   for (int i = es->buffer->rows[row]->gap_end; i < es->buffer->rows[row]->capacity; i++) {
     logical_text[logical_index] = es->buffer->rows[row]->text[i];
     logical_index++;

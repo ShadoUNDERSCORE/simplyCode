@@ -28,6 +28,7 @@ void tui_run(EditorState *es) {
     uint32_t key = notcurses_get_blocking(nc, &ni);
     if (ni.evtype != NCTYPE_RELEASE) {
       if (key == 'q') running = false;
+      if (key == 'd') editor_backspace_char(es);
       ncplane_erase(ed_plane);
       draw_screen(es, ed_plane);
       update_cursor_pos(es, key);
@@ -55,15 +56,18 @@ void update_cursor_pos(EditorState *es, char key) {
     case 'l':
       es->cursor_col++;
       break;
-    case 'd':
-      editor_backspace_char(es);
-      break;
     default:
       return;
   }
   if (es->cursor_row < 0) es->cursor_row = 0;
   if (es->cursor_col < 0) es->cursor_col = 0;
-  // TODO: Check for positive bound breach as well
+
+  if (es->cursor_row > es->buffer->row_count -1) {
+    es->cursor_row = es->buffer->row_count -1;
+  }
+  if (es->cursor_col > editor_row_len(es, es->cursor_row) -1) { 
+    es->cursor_col = editor_row_len(es, es->cursor_row) -1;
+  }
   return;
 }
 
