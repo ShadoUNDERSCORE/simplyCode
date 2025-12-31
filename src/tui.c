@@ -17,6 +17,7 @@ void tui_run(EditorState *es) {
   struct ncplane *std = notcurses_stdplane(nc);
   struct ncplane *ed_plane = ncplane_create(std, &p_opts);
 
+  ncplane_erase(ed_plane);
   draw_screen(es, ed_plane);
   ncplane_cursor_move_yx(ed_plane, 0, 0);
   notcurses_cursor_enable(nc, 0, 0);
@@ -74,8 +75,12 @@ void update_cursor_pos(EditorState *es, char key) {
 void draw_screen(EditorState *es, struct ncplane *p) {
   ncplane_cursor_move_yx(p, 0, 0);
   for (int i = 0; i < es->buffer->row_count; i++) {
-    char *logical_text = malloc(editor_row_len(es, i));
+    int len = editor_row_len(es, i) + 1;
+    char *logical_text = malloc(len);
     editor_get_row_text(es, i, logical_text);
+    logical_text[len - 1] = '\0';
     ncplane_putstr(p, logical_text);
+    free(logical_text);
   }
 }
+
