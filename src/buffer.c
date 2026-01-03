@@ -176,7 +176,7 @@ void buffer_backspace_char(TextBuffer *buf, int row, int col) {
   if (col < 0) col = 0;
   if (col > logical_len) col = logical_len;
 
-  if (r->gap_start == 0) {
+  if (r->gap_start < 0) {
     return;
   }
   if (r->gap_start != col) {

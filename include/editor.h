@@ -12,8 +12,10 @@ typedef struct {
   int scroll_offset;
   bool dirty;
   char *filename;
+  bool main_loop_running;
 } EditorState;
 
+void editor_save_to_file(EditorState *es);
 void editor_insert_char(EditorState *es, char c);
 void editor_delete_char(EditorState *es);
 void editor_backspace_char(EditorState *es);

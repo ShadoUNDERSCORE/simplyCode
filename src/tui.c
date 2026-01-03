@@ -23,16 +23,23 @@ void tui_run(EditorState *es) {
   notcurses_cursor_enable(nc, 0, 0);
   notcurses_render(nc);
 
-  bool running = true;
-  while (running) {
+  while (es->main_loop_running) {
     struct ncinput ni = {0};
     uint32_t key = notcurses_get_blocking(nc, &ni);
     if (ni.evtype != NCTYPE_RELEASE) {
-      if (key == 'q') running = false;
-      if (key == 'd') editor_backspace_char(es);
+      enum key_t key_type = get_key_type(key);
+      if (ncinput_ctrl_p(&ni)) {
+        handle_ctrl_combo(es, key);
+      } else if (key_type == WRITEABLE) {
+        editor_insert_char(es, ni.eff_text[0]);
+      } else if (key_type == MOVEMENT) {
+        update_cursor_pos(es, key);
+      } else if (key_type == FUNCTIONAL) {
+        // translate key
+        if (key == NCKEY_BACKSPACE) editor_backspace_char(es);
+      } 
       ncplane_erase(ed_plane);
       draw_screen(es, ed_plane);
-      update_cursor_pos(es, key);
       ncplane_cursor_move_yx(ed_plane, es->cursor_row, es->cursor_col);
       notcurses_cursor_enable(nc, es->cursor_row, es->cursor_col);
       notcurses_render(nc);
@@ -42,19 +49,28 @@ void tui_run(EditorState *es) {
   return;
 }
 
-// TODO:Solve Random Characters appearing
-void update_cursor_pos(EditorState *es, char key) {
+enum key_t get_key_type(uint32_t key) {
+  if (key >= NCKEY_UP && key <= NCKEY_LEFT) {
+    return MOVEMENT;
+  } else if (iswprint((wchar_t)key)) {
+    return WRITEABLE;
+  } else {
+    return FUNCTIONAL;
+  }
+}
+
+void update_cursor_pos(EditorState *es, uint32_t key) {
   switch (key) {
-    case 'j':
+    case NCKEY_DOWN:
       es->cursor_row++;
       break;
-    case 'k':
+    case NCKEY_UP:
       es->cursor_row--;
       break;
-    case 'h':
+    case NCKEY_LEFT:
       es->cursor_col--;
       break;
-    case 'l':
+    case NCKEY_RIGHT:
       es->cursor_col++;
       break;
     default:
@@ -70,6 +86,23 @@ void update_cursor_pos(EditorState *es, char key) {
     es->cursor_col = editor_row_len(es, es->cursor_row) -1;
   }
   return;
+}
+
+void handle_ctrl_combo(EditorState *es, uint32_t key) {
+  switch (key) {
+    case 'Q':
+      es->main_loop_running = false;
+      break;
+    case 'W':
+      editor_save_to_file(es);
+      break;
+    case 'S':
+      es->main_loop_running = false;
+      editor_save_to_file(es);
+      break;
+    default:
+      return;
+  }
 }
 
 void draw_screen(EditorState *es, struct ncplane *p) {

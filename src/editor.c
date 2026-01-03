@@ -1,20 +1,26 @@
 #include "../include/editor.h"
 
+void editor_save_to_file(EditorState *es) {
+  buffer_save(es->buffer, es->filename);
+}
+
 void editor_insert_char(EditorState *es, char c) {
   buffer_insert_char(es->buffer, es->cursor_row, es->cursor_col, c);
+  es->cursor_col++;
 }
 
 void editor_delete_char(EditorState *es) {
-  TextBuffer *buf = es->buffer;
   es->cursor_col++;
-  buffer_backspace_char(buf, es->cursor_row, es->cursor_col);
+  buffer_backspace_char(es->buffer, es->cursor_row, es->cursor_col);
 }
 
 void editor_backspace_char(EditorState *es) {
-  TextBuffer *buf = es->buffer;
-  buffer_backspace_char(buf, es->cursor_row, es->cursor_col);
-  // es->cursor_col--;
-  es->cursor_col = es->buffer->rows[es->cursor_row]->gap_start;
+  if (es->cursor_col > 0) {
+    buffer_backspace_char(es->buffer, es->cursor_row, es->cursor_col);
+    es->cursor_col = es->buffer->rows[es->cursor_row]->gap_start;
+  } // else if (es->cursor_col == 0) {
+
+  //}
 }
 
 void editor_move_cursor(EditorState *es, int row, int col) {
@@ -29,11 +35,13 @@ int editor_row_len(EditorState *es, int row) {
 
 void editor_get_row_text(EditorState *es, int row, char *logical_text) {
   int logical_index = 0;
-  for (int i = 0; i < es->buffer->rows[row]->gap_start; i++) {
-    logical_text[i] = es->buffer->rows[row]->text[i];
-    logical_index = i;
+  if (es->buffer->rows[row]->gap_start != 0) {
+    for (int i = 0; i < es->buffer->rows[row]->gap_start; i++) {
+      logical_text[i] = es->buffer->rows[row]->text[i];
+      logical_index = i;
+    }
+    logical_index++;
   }
-  logical_index++;
   for (int i = es->buffer->rows[row]->gap_end; i < es->buffer->rows[row]->capacity; i++) {
     logical_text[logical_index] = es->buffer->rows[row]->text[i];
     logical_index++;

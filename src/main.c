@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
   es->cursor_col = 0;
   es->buffer = buf;
   es->filename = "test.txt";
+  es->main_loop_running = true;
   tui_run(es);
 
 
