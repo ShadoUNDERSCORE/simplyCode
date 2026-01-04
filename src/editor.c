@@ -2,16 +2,26 @@
 
 void editor_save_to_file(EditorState *es) {
   buffer_save(es->buffer, es->filename);
+  return;
+}
+
+void editor_create_row(EditorState *es) {
+  buffer_create_row(es->buffer, es->cursor_row);
+  es->cursor_col = 0;
+  es->cursor_row++;
+  return;
 }
 
 void editor_insert_char(EditorState *es, char c) {
   buffer_insert_char(es->buffer, es->cursor_row, es->cursor_col, c);
   es->cursor_col++;
+  return;
 }
 
 void editor_delete_char(EditorState *es) {
   es->cursor_col++;
   buffer_backspace_char(es->buffer, es->cursor_row, es->cursor_col);
+  return;
 }
 
 void editor_backspace_char(EditorState *es) {
@@ -21,12 +31,14 @@ void editor_backspace_char(EditorState *es) {
   } // else if (es->cursor_col == 0) {
 
   //}
+  return;
 }
 
 void editor_move_cursor(EditorState *es, int row, int col) {
   es->cursor_row = row;
   es->cursor_col = col;
   // if cursor is off screen scroll to cursor
+  return;
 }
 
 int editor_row_len(EditorState *es, int row) {
@@ -46,5 +58,6 @@ void editor_get_row_text(EditorState *es, int row, char *logical_text) {
     logical_text[logical_index] = es->buffer->rows[row]->text[i];
     logical_index++;
   }
+  return;
 }
 

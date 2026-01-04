@@ -37,6 +37,9 @@ void tui_run(EditorState *es) {
       } else if (key_type == FUNCTIONAL) {
         // translate key
         if (key == NCKEY_BACKSPACE) editor_backspace_char(es);
+        if (key == NCKEY_RETURN) {
+          editor_create_row(es);
+        }
       } 
       ncplane_erase(ed_plane);
       draw_screen(es, ed_plane);
@@ -79,11 +82,11 @@ void update_cursor_pos(EditorState *es, uint32_t key) {
   if (es->cursor_row < 0) es->cursor_row = 0;
   if (es->cursor_col < 0) es->cursor_col = 0;
 
-  if (es->cursor_row > es->buffer->row_count -1) {
-    es->cursor_row = es->buffer->row_count -1;
+  if (es->cursor_row > es->buffer->row_count - 1) {
+    es->cursor_row = es->buffer->row_count - 1;
   }
-  if (es->cursor_col > editor_row_len(es, es->cursor_row) -1) { 
-    es->cursor_col = editor_row_len(es, es->cursor_row) -1;
+  if (es->cursor_col > editor_row_len(es, es->cursor_row)) { 
+    es->cursor_col = editor_row_len(es, es->cursor_row);
   }
   return;
 }
@@ -106,13 +109,16 @@ void handle_ctrl_combo(EditorState *es, uint32_t key) {
 }
 
 void draw_screen(EditorState *es, struct ncplane *p) {
-  ncplane_cursor_move_yx(p, 0, 0);
+  int y = 0;
+  ncplane_cursor_move_yx(p, y, 0);
   for (int i = 0; i < es->buffer->row_count; i++) {
     int len = editor_row_len(es, i) + 1;
     char *logical_text = malloc(len);
     editor_get_row_text(es, i, logical_text);
     logical_text[len - 1] = '\0';
     ncplane_putstr(p, logical_text);
+    y++;
+    ncplane_cursor_move_yx(p, y, 0);
     free(logical_text);
   }
 }

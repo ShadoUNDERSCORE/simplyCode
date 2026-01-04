@@ -11,27 +11,29 @@ void debug_print_row(Row *r);
 
 
 int main(int argc, char *argv[]) {
-  int opt;
-  while ((opt = getopt(argc, argv, "g")) != -1) {
-    switch (opt) {
-      case 'g':
-        printf("No GUI Option Available Yet.\n");
-        break;
-      default:
-        printf("Unknown Option: %c\n", optopt);
-    }
-  }
+  // int opt;
+  // while ((opt = getopt(argc, argv, "g")) != -1) {
+  //   switch (opt) {
+  //     case 'g':
+  //       printf("No GUI Option Available Yet.\n");
+  //       break;
+  //     default:
+  //       printf("Unknown Option: %c\n", optopt);
+  //   }
+  // }
 
   // test();
-  TextBuffer *buf = buffer_load("test.txt");
+  if (argc == 2) {
+    TextBuffer *buf = buffer_load(argv[1]);
 
-  EditorState *es = malloc(sizeof(EditorState));
-  es->cursor_row = 0;
-  es->cursor_col = 0;
-  es->buffer = buf;
-  es->filename = "test.txt";
-  es->main_loop_running = true;
-  tui_run(es);
+    EditorState *es = malloc(sizeof(EditorState));
+    es->cursor_row = 0;
+    es->cursor_col = 0;
+    es->buffer = buf;
+    es->filename = argv[1];
+    es->main_loop_running = true;
+    tui_run(es);
+  }
 
 
   // cleanup memory

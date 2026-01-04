@@ -16,6 +16,7 @@ typedef struct {
 } EditorState;
 
 void editor_save_to_file(EditorState *es);
+void editor_create_row(EditorState *es);
 void editor_insert_char(EditorState *es, char c);
 void editor_delete_char(EditorState *es);
 void editor_backspace_char(EditorState *es);

@@ -1,5 +1,8 @@
 #include "../include/buffer.h"
 
+const int N_NEW_LINES = 64;
+const int INIT_CAPACITY = 128;
+
 TextBuffer *buffer_load(const char *path) {
 
   bool healthy = true;
@@ -7,12 +10,11 @@ TextBuffer *buffer_load(const char *path) {
   FILE *stream = fopen(path, "r");
   if (!stream) {return NULL;}
 
-  int init_capacity = 128;
   TextBuffer *buf = malloc(sizeof(TextBuffer));
-  buf->rows = malloc(sizeof(Row *) * init_capacity);
+  buf->rows = malloc(sizeof(Row *) * INIT_CAPACITY);
   if (!buf->rows) healthy = false;
   buf->row_count = 0;
-  buf->capacity = init_capacity;
+  buf->capacity = INIT_CAPACITY;
 
   char *line = NULL;
   size_t line_size = 0;
@@ -34,14 +36,18 @@ TextBuffer *buffer_load(const char *path) {
       healthy = false;
       break;
     }
+    // remove newlines
     memcpy(new_row->text, line, text_len);
     memset(new_row->text + text_len, 0, gap_size);
-    new_row->gap_start = text_len;
+    if (new_row->text[text_len - 1] == '\n') {
+      new_row->gap_start = text_len - 1;
+    } else {
+      new_row->gap_start = text_len;
+    }
     new_row->gap_end   = row_size;
     new_row->capacity  = row_size;
 
     if (buf->row_count == buf->capacity - 1) {
-      const int N_NEW_LINES = 64;
       buf->rows = realloc(buf->rows, (buf->capacity + N_NEW_LINES) * sizeof(Row *));
       if (!buf->rows) {
         healthy = false;
@@ -71,6 +77,7 @@ void buffer_free(TextBuffer *buf) {
     free(r);
   }
 
+  // TODO: Fix free() invalid size error
   free(buf->rows);
   free(buf);
 }
@@ -86,10 +93,29 @@ void buffer_save(TextBuffer *buf, const char *path) {
     char *tail_ptr = buf->rows[i]->text + buf->rows[i]->gap_end;
 
     fprintf(f, "%.*s", prefix_len, prefix_ptr);
-    fprintf(f, "%.*s", tail_len, tail_ptr);
+    fprintf(f, "%.*s\n", tail_len, tail_ptr);
   }
   fclose(f);
   return;
+}
+
+void buffer_create_row(TextBuffer *buf, int preceeding_row) {
+  // Shift rows if not at end of array
+  if (buf->capacity > buf->row_count + 8) {
+    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], buf->capacity - preceeding_row);
+  } else {
+    // Reallocate if necissary
+    buf->rows = realloc(buf->rows, (buf->capacity + N_NEW_LINES) * sizeof(Row *));
+    buf->capacity += N_NEW_LINES;
+    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], buf->capacity - preceeding_row);
+  }
+  Row *new_row = malloc(sizeof(Row));
+  new_row->text = malloc(INIT_CAPACITY);
+  new_row->gap_start = 0;
+  new_row->gap_end = INIT_CAPACITY - 1;
+  new_row->capacity = INIT_CAPACITY;
+  buf->rows[preceeding_row + 1] = new_row;
+  buf->row_count++;
 }
 
 static int logical_to_physical(Row *row, int logical_index) {
