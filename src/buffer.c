@@ -44,7 +44,7 @@ TextBuffer *buffer_load(const char *path) {
     } else {
       new_row->gap_start = text_len;
     }
-    new_row->gap_end   = row_size;
+    new_row->gap_end   = row_size - 1;
     new_row->capacity  = row_size;
 
     if (buf->row_count == buf->capacity - 1) {
@@ -77,7 +77,6 @@ void buffer_free(TextBuffer *buf) {
     free(r);
   }
 
-  // TODO: Fix free() invalid size error
   free(buf->rows);
   free(buf);
 }

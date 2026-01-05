@@ -61,19 +61,9 @@ void debug_print_row(Row *r) {
 void test() {
 
   TextBuffer *buf = buffer_load("test.txt");
-
-  char *new_text = "way ";
-  for (int i = 0; i < 4; i++) {
-    buffer_insert_char(buf, 7, 9+i, new_text[i]);
-  }
-
   for (int i = 0; i < buf->row_count; i++) {
     debug_print_row(buf->rows[i]);
   } 
-
-  buffer_save(buf, "test2.txt");
-  buffer_backspace_char(buf, 7, 41);
-  buffer_save(buf, "test3.txt");
   free(buf);
   buf = NULL;
 }
