@@ -6,15 +6,32 @@ const int INIT_CAPACITY = 128;
 TextBuffer *buffer_load(const char *path) {
 
   bool healthy = true;
-
+  bool new_file = false;
+ 
   FILE *stream = fopen(path, "r");
-  if (!stream) {return NULL;}
+  if (!stream) {
+    FILE *f = fopen(path, "a");
+    fclose(f);
+    stream = fopen(path, "r");
+    if (!stream) return NULL;
+    new_file = true;
+  }
 
   TextBuffer *buf = malloc(sizeof(TextBuffer));
   buf->rows = malloc(sizeof(Row *) * INIT_CAPACITY);
   if (!buf->rows) healthy = false;
   buf->row_count = 0;
   buf->capacity = INIT_CAPACITY;
+
+  if (new_file) {
+    fclose(stream);
+    if (!healthy) {
+      buffer_free(buf);
+      return NULL;
+    }
+    buffer_create_row(buf, 0);
+    return buf;
+  }
 
   char *line = NULL;
   size_t line_size = 0;
@@ -100,7 +117,7 @@ void buffer_save(TextBuffer *buf, const char *path) {
 
 void buffer_create_row(TextBuffer *buf, int preceeding_row) {
   // Shift rows if not at end of array
-  if (buf->capacity > buf->row_count + 8) {
+  if (buf->capacity > buf->row_count + 8 && buf->row_count != 0) {
     memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], buf->capacity - preceeding_row);
   } else {
     // Reallocate if necissary
@@ -113,7 +130,11 @@ void buffer_create_row(TextBuffer *buf, int preceeding_row) {
   new_row->gap_start = 0;
   new_row->gap_end = INIT_CAPACITY - 1;
   new_row->capacity = INIT_CAPACITY;
-  buf->rows[preceeding_row + 1] = new_row;
+  if (buf->row_count != 0) {
+    buf->rows[preceeding_row + 1] = new_row;
+  } else {
+    buf->rows[0] = new_row;
+  }
   buf->row_count++;
 }
 

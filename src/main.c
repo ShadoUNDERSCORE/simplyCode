@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
   // test();
   if (argc == 2) {
     TextBuffer *buf = buffer_load(argv[1]);
+    if (!buf) return 1;
 
     EditorState *es = malloc(sizeof(EditorState));
     es->cursor_row = 0;
