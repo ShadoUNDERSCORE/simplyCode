@@ -1,6 +1,8 @@
 #include "../include/tui.h"
 #include <unistd.h>
 
+const int TAB_LEN = 4;
+
 void tui_run(EditorState *es) {
   setlocale(LC_ALL, "");
   struct notcurses_options ncopts = {0};
@@ -44,7 +46,12 @@ void tui_run(EditorState *es) {
           ncplane_resize(ed_plane, 0, 0, oldrows, oldcols, 0, 0, oldrows + 1, oldcols);
           editor_create_row(es);
         }
-      } 
+        if (key == NCKEY_TAB) {
+          for (int i = 0; i < TAB_LEN; i++) {
+            editor_insert_char(es, ' ');
+          }
+        }
+      }
       ncplane_erase(ed_plane);
       draw_screen(es, ed_plane);
       ncplane_cursor_move_yx(ed_plane, es->cursor_row, es->cursor_col);
@@ -89,8 +96,8 @@ void update_cursor_pos(EditorState *es, uint32_t key) {
   if (es->cursor_row > es->buffer->row_count - 1) {
     es->cursor_row = es->buffer->row_count - 1;
   }
-  if (es->cursor_col > editor_row_len(es, es->cursor_row)) { 
-    es->cursor_col = editor_row_len(es, es->cursor_row);
+  if (es->cursor_col > editor_row_len(es, es->cursor_row) - 1) { 
+    es->cursor_col = editor_row_len(es, es->cursor_row) - 1;
   }
   return;
 }
