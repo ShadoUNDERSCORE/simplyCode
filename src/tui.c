@@ -137,15 +137,14 @@ void draw_line_nums(EditorState *es, struct ncplane *p) {
   for (int i = 0; i < es->buffer->row_count; i++) {
     ncplane_cursor_move_yx(p, i, 0);
     char str_num[11] = {};
-    sprintf(str_num, "%i", i);
+    sprintf(str_num, "%i", i + 1);
     ncplane_putstr(p, str_num);
   }
 }
 
 void draw_screen(EditorState *es, struct ncplane *p) {
-  int y = 0;
   for (int i = 0; i < es->buffer->row_count; i++) {
-    ncplane_cursor_move_yx(p, y++, 0);
+    ncplane_cursor_move_yx(p, i, 0);
     int len = editor_row_len(es, i) + 1;
     char *logical_text = malloc(len);
     editor_get_row_text(es, i, logical_text);

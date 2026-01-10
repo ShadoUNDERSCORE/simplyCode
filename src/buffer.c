@@ -128,7 +128,7 @@ void buffer_create_row(TextBuffer *buf, int preceeding_row) {
   Row *new_row = malloc(sizeof(Row));
   new_row->text = malloc(INIT_CAPACITY);
   new_row->gap_start = 0;
-  new_row->gap_end = INIT_CAPACITY - 1;
+  new_row->gap_end = INIT_CAPACITY;
   new_row->capacity = INIT_CAPACITY;
   if (buf->row_count != 0) {
     buf->rows[preceeding_row + 1] = new_row;
