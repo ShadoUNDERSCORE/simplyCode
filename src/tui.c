@@ -2,6 +2,7 @@
 #include <unistd.h>
 
 const int TAB_LEN = 4;
+const int LINE_NUM_SIZE = 6;
 
 void tui_run(EditorState *es) {
   setlocale(LC_ALL, "");
@@ -11,18 +12,29 @@ void tui_run(EditorState *es) {
   struct notcurses *nc = notcurses_init(&ncopts, NULL);
   if(!nc) return;
 
-  struct ncplane_options p_opts = {0};
-  p_opts.flags = NCPLANE_OPTION_VSCROLL;
-  p_opts.rows = es->buffer->row_count + 1;
-  p_opts.cols = 1024;
+  struct ncplane_options text_p_opts = {0};
+  text_p_opts.flags = NCPLANE_OPTION_VSCROLL;
+  text_p_opts.rows = es->buffer->row_count + 1;
+  text_p_opts.cols = 1024;
+  text_p_opts.x = LINE_NUM_SIZE;
+
+  struct ncplane_options nums_p_opts = {0};
+  nums_p_opts.flags = NCPLANE_OPTION_VSCROLL;
+  nums_p_opts.rows = es->buffer->row_count + 1;
+  nums_p_opts.cols = LINE_NUM_SIZE;
+
 
   struct ncplane *std = notcurses_stdplane(nc);
-  struct ncplane *ed_plane = ncplane_create(std, &p_opts);
+  struct ncplane *text_plane = ncplane_create(std, &text_p_opts);
+  struct ncplane *num_col_plane = ncplane_create(std, &nums_p_opts);
 
-  ncplane_erase(ed_plane);
-  draw_screen(es, ed_plane);
-  ncplane_cursor_move_yx(ed_plane, 0, 0);
-  notcurses_cursor_enable(nc, 0, 0);
+  ncplane_set_fg_rgb(num_col_plane, 0x967218);
+  draw_line_nums(es, num_col_plane);
+
+  ncplane_erase(text_plane);
+  draw_screen(es, text_plane);
+  ncplane_cursor_move_yx(text_plane, 0, 0);
+  notcurses_cursor_enable(nc, 0, LINE_NUM_SIZE);
   notcurses_render(nc);
 
   while (es->main_loop_running) {
@@ -42,8 +54,9 @@ void tui_run(EditorState *es) {
         if (key == NCKEY_RETURN) {
           unsigned int oldrows = 0;
           unsigned int oldcols = 0;
-          ncplane_dim_yx(ed_plane, &oldrows, &oldcols);
-          ncplane_resize(ed_plane, 0, 0, oldrows, oldcols, 0, 0, oldrows + 1, oldcols);
+          ncplane_dim_yx(text_plane, &oldrows, &oldcols);
+          ncplane_resize(text_plane, 0, 0, oldrows, oldcols, 0, 0, oldrows + 1, oldcols);
+          ncplane_resize(num_col_plane, 0, 0, oldrows, LINE_NUM_SIZE, 0, 0, oldrows + 1, LINE_NUM_SIZE);
           editor_create_row(es);
         }
         if (key == NCKEY_TAB) {
@@ -52,10 +65,11 @@ void tui_run(EditorState *es) {
           }
         }
       }
-      ncplane_erase(ed_plane);
-      draw_screen(es, ed_plane);
-      ncplane_cursor_move_yx(ed_plane, es->cursor_row, es->cursor_col);
-      notcurses_cursor_enable(nc, es->cursor_row, es->cursor_col);
+      ncplane_erase(text_plane);
+      draw_line_nums(es, num_col_plane);
+      draw_screen(es, text_plane);
+      ncplane_cursor_move_yx(text_plane, es->cursor_row, es->cursor_col);
+      notcurses_cursor_enable(nc, es->cursor_row, es->cursor_col + LINE_NUM_SIZE);
       notcurses_render(nc);
     }
   }
@@ -116,6 +130,15 @@ void handle_ctrl_combo(EditorState *es, uint32_t key) {
       break;
     default:
       return;
+  }
+}
+
+void draw_line_nums(EditorState *es, struct ncplane *p) {
+  for (int i = 0; i < es->buffer->row_count; i++) {
+    ncplane_cursor_move_yx(p, i, 0);
+    char str_num[11] = {};
+    sprintf(str_num, "%i", i);
+    ncplane_putstr(p, str_num);
   }
 }
 
