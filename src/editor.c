@@ -34,13 +34,6 @@ void editor_backspace_char(EditorState *es) {
   return;
 }
 
-void editor_move_cursor(EditorState *es, int row, int col) {
-  es->cursor_row = row;
-  es->cursor_col = col;
-  // if cursor is off screen scroll to cursor
-  return;
-}
-
 int editor_row_len(EditorState *es, int row) {
   return buffer_row_logical_len(es->buffer->rows[row]);
 }

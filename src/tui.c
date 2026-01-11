@@ -12,15 +12,16 @@ void tui_run(EditorState *es) {
   struct notcurses *nc = notcurses_init(&ncopts, NULL);
   if(!nc) return;
 
+  unsigned int max_rows;
+  notcurses_stddim_yx(nc, &max_rows, NULL);
+
   struct ncplane_options text_p_opts = {0};
-  text_p_opts.flags = NCPLANE_OPTION_VSCROLL;
-  text_p_opts.rows = es->buffer->row_count + 1;
+  text_p_opts.rows = max_rows;
   text_p_opts.cols = 1024;
   text_p_opts.x = LINE_NUM_SIZE;
 
   struct ncplane_options nums_p_opts = {0};
-  nums_p_opts.flags = NCPLANE_OPTION_VSCROLL;
-  nums_p_opts.rows = es->buffer->row_count + 1;
+  nums_p_opts.rows = max_rows;
   nums_p_opts.cols = LINE_NUM_SIZE;
 
 
@@ -52,11 +53,6 @@ void tui_run(EditorState *es) {
         // translate key
         if (key == NCKEY_BACKSPACE) editor_backspace_char(es);
         if (key == NCKEY_RETURN) {
-          unsigned int oldrows = 0;
-          unsigned int oldcols = 0;
-          ncplane_dim_yx(text_plane, &oldrows, &oldcols);
-          ncplane_resize(text_plane, 0, 0, oldrows, oldcols, 0, 0, oldrows + 1, oldcols);
-          ncplane_resize(num_col_plane, 0, 0, oldrows, LINE_NUM_SIZE, 0, 0, oldrows + 1, LINE_NUM_SIZE);
           editor_create_row(es);
         }
         if (key == NCKEY_TAB) {
