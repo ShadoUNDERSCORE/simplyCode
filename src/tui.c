@@ -3,6 +3,7 @@
 
 const int TAB_LEN = 4;
 const int LINE_NUM_SIZE = 6;
+const int VIEWPORT_THRESHOLD = 4;
 
 void tui_run(EditorState *es) {
   setlocale(LC_ALL, "");
@@ -15,6 +16,9 @@ void tui_run(EditorState *es) {
   unsigned int max_rows;
   notcurses_stddim_yx(nc, &max_rows, NULL);
 
+  int vp_cur_col = 0;
+  int vp_cur_row = 0;
+
   struct ncplane_options text_p_opts = {0};
   text_p_opts.rows = max_rows;
   text_p_opts.cols = 1024;
@@ -24,17 +28,16 @@ void tui_run(EditorState *es) {
   nums_p_opts.rows = max_rows;
   nums_p_opts.cols = LINE_NUM_SIZE;
 
-
   struct ncplane *std = notcurses_stdplane(nc);
   struct ncplane *text_plane = ncplane_create(std, &text_p_opts);
   struct ncplane *num_col_plane = ncplane_create(std, &nums_p_opts);
 
+  ncplane_erase(num_col_plane);
   ncplane_set_fg_rgb(num_col_plane, 0x967218);
-  draw_line_nums(es, num_col_plane);
+  draw_line_nums(es, num_col_plane, max_rows);
 
   ncplane_erase(text_plane);
-  draw_screen(es, text_plane);
-  ncplane_cursor_move_yx(text_plane, 0, 0);
+  draw_screen(es, text_plane, max_rows);
   notcurses_cursor_enable(nc, 0, LINE_NUM_SIZE);
   notcurses_render(nc);
 
@@ -54,6 +57,7 @@ void tui_run(EditorState *es) {
         if (key == NCKEY_BACKSPACE) editor_backspace_char(es);
         if (key == NCKEY_RETURN) {
           editor_create_row(es);
+          vp_cur_row++;
         }
         if (key == NCKEY_TAB) {
           for (int i = 0; i < TAB_LEN; i++) {
@@ -62,10 +66,13 @@ void tui_run(EditorState *es) {
         }
       }
       ncplane_erase(text_plane);
-      draw_line_nums(es, num_col_plane);
-      draw_screen(es, text_plane);
-      ncplane_cursor_move_yx(text_plane, es->cursor_row, es->cursor_col);
-      notcurses_cursor_enable(nc, es->cursor_row, es->cursor_col + LINE_NUM_SIZE);
+      ncplane_erase(num_col_plane);
+      vp_scroll(es, vp_cur_row, max_rows);
+      vp_cur_row = es->cursor_row - es->scroll_offset;
+      vp_cur_col = es->cursor_col;
+      draw_line_nums(es, num_col_plane, max_rows);
+      draw_screen(es, text_plane, max_rows);
+      notcurses_cursor_enable(nc, vp_cur_row, vp_cur_col + LINE_NUM_SIZE);
       notcurses_render(nc);
     }
   }
@@ -95,19 +102,22 @@ void update_cursor_pos(EditorState *es, uint32_t key) {
       es->cursor_col--;
       break;
     case NCKEY_RIGHT:
-      es->cursor_col++;
+      es->cursor_col++; 
       break;
     default:
       return;
   }
-  if (es->cursor_row < 0) es->cursor_row = 0;
-  if (es->cursor_col < 0) es->cursor_col = 0;
 
-  if (es->cursor_row > es->buffer->row_count - 1) {
+  if (es->cursor_row < 0) {
+    es->cursor_row = 0;
+  } else if (es->cursor_row > es->buffer->row_count - 1) {
     es->cursor_row = es->buffer->row_count - 1;
   }
-  if (es->cursor_col > editor_row_len(es, es->cursor_row) - 1) { 
-    es->cursor_col = editor_row_len(es, es->cursor_row) - 1;
+
+  if (es->cursor_col < 0) {
+    es->cursor_col = 0;
+  } else if (es->cursor_col > editor_row_len(es, es->cursor_row)) { 
+    es->cursor_col = editor_row_len(es, es->cursor_row);
   }
   return;
 }
@@ -129,18 +139,38 @@ void handle_ctrl_combo(EditorState *es, uint32_t key) {
   }
 }
 
-void draw_line_nums(EditorState *es, struct ncplane *p) {
-  for (int i = 0; i < es->buffer->row_count; i++) {
+void vp_scroll(EditorState *es, int vp_cur_row, int vp_row_max) {
+  if (es->buffer->row_count >= vp_row_max) {
+    if (vp_cur_row >= vp_row_max) {
+      es->scroll_offset++;
+    } else if (vp_cur_row <= VIEWPORT_THRESHOLD - 1) {
+      es->scroll_offset--;
+    }
+    if (es->scroll_offset < 0) {
+      es->scroll_offset = 0;
+    }
+  }
+}
+
+void draw_line_nums(EditorState *es, struct ncplane *p, int max_rows) {
+  int n_row_nums = max_rows;
+  if (es->buffer->row_count < max_rows) {
+    n_row_nums = es->buffer->row_count;
+  }
+  int ln = es->scroll_offset;
+  for (int i = 0; i < n_row_nums; i++) {
     ncplane_cursor_move_yx(p, i, 0);
-    char str_num[11] = {};
-    sprintf(str_num, "%i", i + 1);
+    char str_num[12] = {};
+    sprintf(str_num, "%i", ln + 1);
+    ln++;
     ncplane_putstr(p, str_num);
   }
 }
 
-void draw_screen(EditorState *es, struct ncplane *p) {
-  for (int i = 0; i < es->buffer->row_count; i++) {
-    ncplane_cursor_move_yx(p, i, 0);
+void draw_screen(EditorState *es, struct ncplane *p, int max_rows) {
+  int y = 0;
+  for (int i = es->scroll_offset; i < (max_rows + es->scroll_offset); i++) {
+    ncplane_cursor_move_yx(p, y++, 0);
     int len = editor_row_len(es, i) + 1;
     char *logical_text = malloc(len);
     editor_get_row_text(es, i, logical_text);
