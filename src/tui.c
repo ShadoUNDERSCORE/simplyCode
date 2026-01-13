@@ -117,8 +117,10 @@ void update_cursor_pos(EditorState *es, uint32_t key) {
 
   if (es->cursor_col < 0) {
     es->cursor_col = 0;
-  } else if (es->cursor_col > editor_row_len(es, es->cursor_row)) { 
-    es->cursor_col = editor_row_len(es, es->cursor_row);
+  } else if (editor_row_len(es, es->cursor_row) == 0) {
+    es->cursor_col = 0;
+  } else if (es->cursor_col > editor_row_len(es, es->cursor_row) - 1) { 
+    es->cursor_col = editor_row_len(es, es->cursor_row) - 1;
   }
   return;
 }
@@ -173,7 +175,11 @@ void draw_line_nums(EditorState *es, struct ncplane *p, int max_rows) {
 
 void draw_screen(EditorState *es, struct ncplane *p, int max_rows) {
   int y = 0;
-  for (int i = es->scroll_offset; i < (max_rows + es->scroll_offset); i++) {
+  int n_drawable_rows = max_rows;
+  if (es->buffer->row_count < max_rows) {
+    n_drawable_rows = es->buffer->row_count;
+  }
+  for (int i = es->scroll_offset; i < (n_drawable_rows + es->scroll_offset); i++) {
     ncplane_cursor_move_yx(p, y++, 0);
     int len = editor_row_len(es, i) + 1;
     char *logical_text = malloc(len);

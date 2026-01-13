@@ -12,8 +12,6 @@ TextBuffer *buffer_load(const char *path) {
   if (!stream) {
     FILE *f = fopen(path, "a");
     fclose(f);
-    stream = fopen(path, "r");
-    if (!stream) return NULL;
     new_file = true;
   }
 
@@ -24,7 +22,6 @@ TextBuffer *buffer_load(const char *path) {
   buf->capacity = INIT_CAPACITY;
 
   if (new_file) {
-    fclose(stream);
     if (!healthy) {
       buffer_free(buf);
       return NULL;
