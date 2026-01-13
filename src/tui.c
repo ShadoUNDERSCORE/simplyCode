@@ -2,7 +2,7 @@
 #include <unistd.h>
 
 const int TAB_LEN = 4;
-const int LINE_NUM_SIZE = 6;
+const int LINE_NUM_SIZE = 7;
 const int VIEWPORT_THRESHOLD = 4;
 
 void tui_run(EditorState *es) {
@@ -67,9 +67,10 @@ void tui_run(EditorState *es) {
       }
       ncplane_erase(text_plane);
       ncplane_erase(num_col_plane);
+      vp_cur_col = es->cursor_col;
+      vp_cur_row = es->cursor_row - es->scroll_offset;
       vp_scroll(es, vp_cur_row, max_rows);
       vp_cur_row = es->cursor_row - es->scroll_offset;
-      vp_cur_col = es->cursor_col;
       draw_line_nums(es, num_col_plane, max_rows);
       draw_screen(es, text_plane, max_rows);
       notcurses_cursor_enable(nc, vp_cur_row, vp_cur_col + LINE_NUM_SIZE);
@@ -102,7 +103,7 @@ void update_cursor_pos(EditorState *es, uint32_t key) {
       es->cursor_col--;
       break;
     case NCKEY_RIGHT:
-      es->cursor_col++; 
+      es->cursor_col++;
       break;
     default:
       return;
@@ -150,6 +151,7 @@ void vp_scroll(EditorState *es, int vp_cur_row, int vp_row_max) {
       es->scroll_offset = 0;
     }
   }
+  return;
 }
 
 void draw_line_nums(EditorState *es, struct ncplane *p, int max_rows) {
@@ -160,11 +162,13 @@ void draw_line_nums(EditorState *es, struct ncplane *p, int max_rows) {
   int ln = es->scroll_offset;
   for (int i = 0; i < n_row_nums; i++) {
     ncplane_cursor_move_yx(p, i, 0);
-    char str_num[12] = {};
-    sprintf(str_num, "%i", ln + 1);
+    char *str_num = malloc(LINE_NUM_SIZE + 1);
+    sprintf(str_num, "%u", ln + 1);
     ln++;
     ncplane_putstr(p, str_num);
+    free(str_num);
   }
+  return;
 }
 
 void draw_screen(EditorState *es, struct ncplane *p, int max_rows) {
