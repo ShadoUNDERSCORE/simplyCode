@@ -53,13 +53,15 @@ void tui_run(EditorState *es) {
       } else if (key_type == MOVEMENT) {
         update_cursor_pos(es, key);
       } else if (key_type == FUNCTIONAL) {
-        // translate key
-        if (key == NCKEY_BACKSPACE) editor_backspace_char(es);
-        if (key == NCKEY_RETURN) {
-          editor_create_row(es);
-          vp_cur_row++;
-        }
-        if (key == NCKEY_TAB) {
+        if (key == NCKEY_BACKSPACE) {
+          editor_backspace_char(es);
+        } else if (key == NCKEY_RETURN) {
+          if (ncinput_shift_p(&ni)) {
+            editor_create_row(es, es->cursor_row - 1);
+          } else {
+            editor_create_row(es, es->cursor_row);
+          }
+        } else if (key == NCKEY_TAB) {
           for (int i = 0; i < TAB_LEN; i++) {
             editor_insert_char(es, ' ');
           }

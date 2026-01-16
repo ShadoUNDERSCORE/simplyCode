@@ -5,10 +5,10 @@ void editor_save_to_file(EditorState *es) {
   return;
 }
 
-void editor_create_row(EditorState *es) {
-  buffer_create_row(es->buffer, es->cursor_row);
+void editor_create_row(EditorState *es, int preceeding_row) {
+  buffer_create_row(es->buffer, preceeding_row);
+  es->cursor_row = preceeding_row + 1;
   es->cursor_col = 0;
-  es->cursor_row++;
   return;
 }
 

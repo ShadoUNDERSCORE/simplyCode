@@ -10,8 +10,6 @@ TextBuffer *buffer_load(const char *path) {
  
   FILE *stream = fopen(path, "r");
   if (!stream) {
-    FILE *f = fopen(path, "a");
-    fclose(f);
     new_file = true;
   }
 
@@ -115,12 +113,12 @@ void buffer_save(TextBuffer *buf, const char *path) {
 void buffer_create_row(TextBuffer *buf, int preceeding_row) {
   // Shift rows if not at end of array
   if (buf->capacity > buf->row_count + 8 && buf->row_count != 0) {
-    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], buf->capacity - preceeding_row);
+    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], (buf->capacity - preceeding_row) * sizeof(char *));
   } else {
     // Reallocate if necissary
     buf->rows = realloc(buf->rows, (buf->capacity + N_NEW_LINES) * sizeof(Row *));
     buf->capacity += N_NEW_LINES;
-    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], buf->capacity - preceeding_row);
+    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], (buf->capacity - preceeding_row) * sizeof(char *));
   }
   Row *new_row = malloc(sizeof(Row));
   new_row->text = malloc(INIT_CAPACITY);
