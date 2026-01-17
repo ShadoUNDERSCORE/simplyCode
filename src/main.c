@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
     es->filename = argv[1];
     es->main_loop_running = true;
     tui_run(es);
+    // test();
   }
 
 

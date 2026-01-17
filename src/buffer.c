@@ -3,6 +3,8 @@
 const int N_NEW_LINES = 64;
 const int INIT_CAPACITY = 128;
 
+// TODO: Sort out confusing logical vs physical nonsense
+
 TextBuffer *buffer_load(const char *path) {
 
   bool healthy = true;
@@ -113,12 +115,12 @@ void buffer_save(TextBuffer *buf, const char *path) {
 void buffer_create_row(TextBuffer *buf, int preceeding_row) {
   // Shift rows if not at end of array
   if (buf->capacity > buf->row_count + 8 && buf->row_count != 0) {
-    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], (buf->capacity - preceeding_row) * sizeof(char *));
+    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], (buf->row_count - preceeding_row) * sizeof(char *));
   } else {
     // Reallocate if necissary
     buf->rows = realloc(buf->rows, (buf->capacity + N_NEW_LINES) * sizeof(Row *));
     buf->capacity += N_NEW_LINES;
-    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], (buf->capacity - preceeding_row) * sizeof(char *));
+    memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], (buf->row_count - preceeding_row) * sizeof(char *));
   }
   Row *new_row = malloc(sizeof(Row));
   new_row->text = malloc(INIT_CAPACITY);
@@ -133,6 +135,28 @@ void buffer_create_row(TextBuffer *buf, int preceeding_row) {
   buf->row_count++;
 }
 
+void buffer_delete_row(TextBuffer *buf, int row) {
+  if (row > 0 && row <= buf->row_count) {
+    Row *preceeding_row = buf->rows[row - 1];
+    Row *target_row = buf->rows[row];
+    gap_move(preceeding_row, buffer_row_logical_len(preceeding_row));
+    int trg_row_log_len = buffer_row_logical_len(target_row);
+    if (preceeding_row->capacity < buffer_row_logical_len(preceeding_row) + trg_row_log_len + 16) {
+      gap_grow(preceeding_row);
+    }
+    char *target_logical_text = malloc(trg_row_log_len);
+    buffer_get_row_text(buf, row, target_logical_text);
+    for (int i = 0; i < trg_row_log_len - 1; i++) {
+      buffer_insert_char(buf, row - 1, buffer_row_logical_len(preceeding_row) - 1, target_logical_text[i]);
+    }
+    memmove(&buf->rows[row], &buf->rows[row + 1], (buf->row_count - row) * sizeof(Row *));
+    free(target_row->text);
+    free(target_row);
+    buf->row_count--;
+  }
+  return;
+}
+
 static int logical_to_physical(Row *row, int logical_index) {
   if (logical_index <= row->gap_start) {
     return logical_index;
@@ -142,6 +166,22 @@ static int logical_to_physical(Row *row, int logical_index) {
 
 int buffer_row_logical_len(Row *row) {
   return row->gap_start + (row->capacity - row->gap_end);
+}
+
+void buffer_get_row_text(TextBuffer *buf, int row, char *dest) {
+  int logical_index = 0;
+  if (buf->rows[row]->gap_start != 0) {
+    for (int i = 0; i < buf->rows[row]->gap_start; i++) {
+      dest[i] = buf->rows[row]->text[i];
+      logical_index = i;
+    }
+    logical_index++;
+  }
+  for (int i = buf->rows[row]->gap_end; i < buf->rows[row]->capacity; i++) {
+    dest[logical_index] = buf->rows[row]->text[i];
+    logical_index++;
+  }
+  return;
 }
 
 void gap_move(Row *row, int logical_index) {

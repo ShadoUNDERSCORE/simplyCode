@@ -21,7 +21,7 @@ void tui_run(EditorState *es) {
 
   struct ncplane_options text_p_opts = {0};
   text_p_opts.rows = max_rows;
-  text_p_opts.cols = 1024;
+  text_p_opts.cols = 2048;
   text_p_opts.x = LINE_NUM_SIZE;
 
   struct ncplane_options nums_p_opts = {0};
@@ -54,7 +54,11 @@ void tui_run(EditorState *es) {
         update_cursor_pos(es, key);
       } else if (key_type == FUNCTIONAL) {
         if (key == NCKEY_BACKSPACE) {
-          editor_backspace_char(es);
+          if (es->cursor_col == 0) {
+            editor_delete_row(es);
+          } else {
+            editor_backspace_char(es);
+          }
         } else if (key == NCKEY_RETURN) {
           if (ncinput_shift_p(&ni)) {
             editor_create_row(es, es->cursor_row - 1);
