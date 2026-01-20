@@ -22,7 +22,7 @@ typedef struct {
 TextBuffer *buffer_load(const char *path);
 void buffer_free(TextBuffer *buf);
 void buffer_save(TextBuffer *buf, const char *path);
-void buffer_create_row(TextBuffer *buf, int preceeding_row);
+void buffer_create_row(TextBuffer *buf, int preceeding_row, int col);
 void buffer_delete_row(TextBuffer *buf, int row);
 void gap_move(Row *row, int index);
 void gap_grow(Row *row);

@@ -26,7 +26,7 @@ TextBuffer *buffer_load(const char *path) {
       buffer_free(buf);
       return NULL;
     }
-    buffer_create_row(buf, 0);
+    buffer_create_row(buf, 0, 0);
     return buf;
   }
 
@@ -112,7 +112,7 @@ void buffer_save(TextBuffer *buf, const char *path) {
   return;
 }
 
-void buffer_create_row(TextBuffer *buf, int preceeding_row) {
+void buffer_create_row(TextBuffer *buf, int preceeding_row, int col) {
   // Shift rows if not at end of array
   if (buf->capacity > buf->row_count + 8 && buf->row_count != 0) {
     memmove(&buf->rows[preceeding_row + 2], &buf->rows[preceeding_row + 1], (buf->row_count - preceeding_row) * sizeof(char *));
@@ -133,6 +133,16 @@ void buffer_create_row(TextBuffer *buf, int preceeding_row) {
     buf->rows[0] = new_row;
   }
   buf->row_count++;
+  int preceeding_row_len = buffer_row_logical_len(buf->rows[preceeding_row]);
+  if (col < preceeding_row_len) {
+    char *text = malloc(preceeding_row_len);
+    buffer_get_row_text(buf, preceeding_row, text);
+    gap_move(buf->rows[preceeding_row], col);
+    for (int i = col; i < preceeding_row_len; i++) {
+      buffer_insert_char(buf, preceeding_row + 1, i - col, text[i]);
+    }
+    buf->rows[preceeding_row]->gap_end = buf->rows[preceeding_row]->capacity;
+  }
 }
 
 void buffer_delete_row(TextBuffer *buf, int row) {

@@ -6,7 +6,7 @@ void editor_save_to_file(EditorState *es) {
 }
 
 void editor_create_row(EditorState *es, int preceeding_row) {
-  buffer_create_row(es->buffer, preceeding_row);
+  buffer_create_row(es->buffer, preceeding_row, es->cursor_col);
   es->cursor_row = preceeding_row + 1;
   es->cursor_col = 0;
   return;
