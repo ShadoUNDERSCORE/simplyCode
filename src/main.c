@@ -30,7 +30,8 @@ int main(int argc, char *argv[]) {
     EditorState *es = malloc(sizeof(EditorState));
     es->cursor_row = 0;
     es->cursor_col = 0;
-    es->scroll_offset = 0;
+    es->v_scroll_offset = 0;
+    es->h_scroll_offset = 0;
     es->buffer = buf;
     es->filename = argv[1];
     es->main_loop_running = true;

@@ -9,7 +9,8 @@ typedef struct {
   TextBuffer *buffer;
   int cursor_row;
   int cursor_col;
-  int scroll_offset;
+  int v_scroll_offset;
+  int h_scroll_offset;
   bool dirty;
   char *filename;
   bool main_loop_running;

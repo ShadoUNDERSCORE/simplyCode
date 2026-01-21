@@ -74,9 +74,9 @@ void tui_run(EditorState *es) {
       ncplane_erase(text_plane);
       ncplane_erase(num_col_plane);
       vp_cur_col = es->cursor_col;
-      vp_cur_row = es->cursor_row - es->scroll_offset;
+      vp_cur_row = es->cursor_row - es->v_scroll_offset;
       vp_scroll(es, vp_cur_row, max_rows);
-      vp_cur_row = es->cursor_row - es->scroll_offset;
+      vp_cur_row = es->cursor_row - es->v_scroll_offset;
       draw_line_nums(es, num_col_plane, max_rows);
       draw_screen(es, text_plane, max_rows);
       notcurses_cursor_enable(nc, vp_cur_row, vp_cur_col + LINE_NUM_SIZE);
@@ -151,12 +151,12 @@ void handle_ctrl_combo(EditorState *es, uint32_t key) {
 void vp_scroll(EditorState *es, int vp_cur_row, int vp_row_max) {
   if (es->buffer->row_count >= vp_row_max) {
     if (vp_cur_row >= vp_row_max) {
-      es->scroll_offset++;
+      es->v_scroll_offset++;
     } else if (vp_cur_row <= VIEWPORT_THRESHOLD - 1) {
-      es->scroll_offset--;
+      es->v_scroll_offset--;
     }
-    if (es->scroll_offset < 0) {
-      es->scroll_offset = 0;
+    if (es->v_scroll_offset < 0) {
+      es->v_scroll_offset = 0;
     }
   }
   return;
@@ -167,7 +167,7 @@ void draw_line_nums(EditorState *es, struct ncplane *p, int max_rows) {
   if (es->buffer->row_count < max_rows) {
     n_row_nums = es->buffer->row_count;
   }
-  int ln = es->scroll_offset;
+  int ln = es->v_scroll_offset;
   for (int i = 0; i < n_row_nums; i++) {
     ncplane_cursor_move_yx(p, i, 0);
     char *str_num = malloc(LINE_NUM_SIZE + 1);
@@ -185,12 +185,13 @@ void draw_screen(EditorState *es, struct ncplane *p, int max_rows) {
   if (es->buffer->row_count < max_rows) {
     n_drawable_rows = es->buffer->row_count;
   }
-  for (int i = es->scroll_offset; i < (n_drawable_rows + es->scroll_offset); i++) {
+  for (int i = es->v_scroll_offset; i < (n_drawable_rows + es->v_scroll_offset); i++) {
     ncplane_cursor_move_yx(p, y++, 0);
     int len = editor_row_len(es, i) + 1;
     char *logical_text = malloc(len);
     editor_get_row_text(es, i, logical_text);
     logical_text[len - 1] = '\0';
+    // if (i == 0) printf("%li", strlen(logical_text));
     ncplane_putstr(p, logical_text);
     free(logical_text);
   }

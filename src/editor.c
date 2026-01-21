@@ -17,7 +17,7 @@ void editor_delete_row(EditorState *es) {
     int len = editor_row_len(es, es->cursor_row);
     buffer_delete_row(es->buffer, es->cursor_row);
     es->cursor_row--;
-    es->cursor_col = editor_row_len(es, es->cursor_row) - len - 1;
+    es->cursor_col = editor_row_len(es, es->cursor_row) - len;
   }
   return;
 }

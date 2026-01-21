@@ -138,10 +138,11 @@ void buffer_create_row(TextBuffer *buf, int preceeding_row, int col) {
     char *text = malloc(preceeding_row_len);
     buffer_get_row_text(buf, preceeding_row, text);
     gap_move(buf->rows[preceeding_row], col);
+
     for (int i = col; i < preceeding_row_len; i++) {
       buffer_insert_char(buf, preceeding_row + 1, i - col, text[i]);
     }
-    buf->rows[preceeding_row]->gap_end = buf->rows[preceeding_row]->capacity;
+    buf->rows[preceeding_row]->gap_end = buf->rows[preceeding_row]->capacity - 1;
   }
 }
 
