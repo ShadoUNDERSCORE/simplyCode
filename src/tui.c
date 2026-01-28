@@ -1,7 +1,7 @@
 #include "../include/tui.h"
 #include <unistd.h>
 
-const int TAB_LEN = 4;
+const int TAB_LEN = 2;
 const int LINE_NUM_SIZE = 7;
 const int VIEWPORT_THRESHOLD = 4;
 
