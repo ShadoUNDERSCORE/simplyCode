@@ -1,11 +1,6 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-
 typedef struct {
   char *text;
   int gap_start;

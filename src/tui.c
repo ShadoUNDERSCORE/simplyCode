@@ -1,11 +1,19 @@
 #include "../include/tui.h"
+#include "../include/config.h"
+
+#include <locale.h>
 #include <unistd.h>
 
-const int TAB_LEN = 2;
 const int LINE_NUM_SIZE = 7;
 const int VIEWPORT_THRESHOLD = 4;
 
 void tui_run(EditorState *es) {
+  SettingsBucket **config = config_load();
+
+  ConfigValue tab_len_value;
+  hashmap_get_value(config, "tab_size", &tab_len_value);
+  const int TAB_LEN = tab_len_value.i;
+
   setlocale(LC_ALL, "");
   struct notcurses_options ncopts = {0};
   ncopts.flags = NCOPTION_SUPPRESS_BANNERS;

@@ -1,11 +1,9 @@
 #ifndef TUI_H
 #define TUI_H
 
-#include <notcurses/notcurses.h>
-#include <locale.h>
-#include <time.h>
-
 #include "editor.h"
+
+#include <notcurses/notcurses.h>
 
 enum key_t {
   WRITEABLE,

@@ -1,5 +1,10 @@
 #include "../include/buffer.h"
 
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
 const int N_NEW_LINES = 64;
 const int INIT_CAPACITY = 128;
 

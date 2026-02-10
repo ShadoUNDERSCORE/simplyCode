@@ -1,5 +1,7 @@
 #include "../include/editor.h"
 
+#include <stdbool.h>
+
 void editor_save_to_file(EditorState *es) {
   buffer_save(es->buffer, es->filename);
   return;

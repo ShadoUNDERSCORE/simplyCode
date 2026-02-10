@@ -1,8 +1,6 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
-#include <stdbool.h>
-
 #include "buffer.h"
 
 typedef struct {
