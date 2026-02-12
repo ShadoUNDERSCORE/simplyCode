@@ -6,13 +6,20 @@
 
 const int LINE_NUM_SIZE = 7;
 const int VIEWPORT_THRESHOLD = 4;
+int TAB_SIZE;
+bool AUTO_INDENT;
 
 void tui_run(EditorState *es) {
   SettingsBucket **config = config_load();
 
-  ConfigValue tab_len_value;
-  hashmap_get_value(config, "tab_size", &tab_len_value);
-  const int TAB_LEN = tab_len_value.i;
+  FILE *f = fopen("log", "a"); fprintf(f, "%s\n", config[hashmap_hash("tab_size")]->settings[0].key); fclose(f);
+  ConfigValue item_value;
+
+  hashmap_get_value(config, "tab_size", &item_value);
+  TAB_SIZE = item_value.i;
+
+  hashmap_get_value(config, "auto_indent", &item_value);
+  AUTO_INDENT = item_value.b;
 
   setlocale(LC_ALL, "");
   struct notcurses_options ncopts = {0};
@@ -72,11 +79,26 @@ void tui_run(EditorState *es) {
             editor_create_row(es, es->cursor_row - 1);
           } else {
             editor_create_row(es, es->cursor_row);
+            if (AUTO_INDENT) {
+              int len = editor_row_len(es, es->cursor_row - 1) - 1;
+              char *logical_text = malloc(len);
+              editor_get_row_text(es, es->cursor_row - 1, logical_text);
+              if (logical_text[len - 1] == '{' || logical_text[len - 1] == ':') {
+                indent(es);
+              }
+              int sp = 0;
+              while (logical_text[sp] == ' ') {
+                sp++;
+              }
+              int n_indents = sp / TAB_SIZE;
+              for (int i = 0; i < n_indents; i++) {
+                indent(es);
+              }
+              free(logical_text);
+            }
           }
         } else if (key == NCKEY_TAB) {
-          for (int i = 0; i < TAB_LEN; i++) {
-            editor_insert_char(es, ' ');
-          }
+          indent(es);
         }
       }
       ncplane_erase(text_plane);
@@ -221,6 +243,12 @@ void draw_screen(EditorState *es, struct ncplane *p, int max_rows) {
     memmove(&logical_text[0], &logical_text[shift_left_to], len - 1);
     ncplane_putstr(p, logical_text);
     free(logical_text);
+  }
+}
+
+void indent(EditorState *es) {
+  for (int i = 0; i < TAB_SIZE; i++) {
+    editor_insert_char(es, ' ');
   }
 }
 

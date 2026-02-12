@@ -31,6 +31,6 @@ void config_init(SettingsBucket **config);
 int hashmap_hash(char *key);
 bool hashmap_get_setting(SettingsBucket **map, char *key, Setting *out, int *index_out);
 bool hashmap_get_value(SettingsBucket **map, char *key, ConfigValue *out);
-void hashmap_update(SettingsBucket **map, Setting updated_setting);
+void hashmap_update(SettingsBucket **map, Setting *updated_setting);
 
 #endif
