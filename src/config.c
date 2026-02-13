@@ -127,9 +127,7 @@ bool hashmap_get_setting(SettingsBucket **map, char *key, Setting *out, int *ind
   int index = hashmap_hash(key);
   if (map[index] != NULL) {
     for (int i = 0; i < map[index]->n_items; i++) {
-      // FILE *f = fopen("log", "a"); fprintf(f, "%s, %s\n", map[index]->settings[i].key, key); fclose(f);
       if (!strcasecmp(map[index]->settings[i].key, key)) {
-        // FILE *f = fopen("log", "a"); fprintf(f, "MATCH!\n"); fclose(f);
         if (out) {
           *out = map[index]->settings[i];
         }
@@ -146,7 +144,6 @@ bool hashmap_get_setting(SettingsBucket **map, char *key, Setting *out, int *ind
 bool hashmap_get_value(SettingsBucket **map, char *key, ConfigValue *out) {
   Setting setting = {0};
   if (hashmap_get_setting(map, key, &setting, NULL)) {
-    FILE *f = fopen("log", "a"); fprintf(f, "VPASS!\n"); fclose(f);
     *out = setting.val;
     return true;
   }
@@ -165,17 +162,14 @@ void hashmap_update(SettingsBucket **map, Setting *updated_setting) {
     int bucket_index;
     if (hashmap_get_setting(map, updated_setting->key, NULL, &bucket_index)) {
       map[index]->settings[bucket_index] = *updated_setting;
-      // memmove(&map[index]->settings[bucket_index], updated_setting, sizeof(Setting));
     } else {
       map[index]->settings[len] = *updated_setting;
-      // memmove(&map[index]->settings[len], updated_setting, sizeof(Setting));
       map[index]->n_items++;
     }
   } else {
     SettingsBucket *new_bucket = malloc(sizeof(SettingsBucket));
     new_bucket->settings = calloc(BUCKET_DEFAULT_SIZE, sizeof(Setting));
     new_bucket->settings[0] = *updated_setting;
-    // memmove(&new_bucket->settings[0], updated_setting, sizeof(Setting));
     new_bucket->n_items = 1;
     new_bucket->capacity = BUCKET_DEFAULT_SIZE;
     map[index] = new_bucket;

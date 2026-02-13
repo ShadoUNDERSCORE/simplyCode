@@ -8,11 +8,11 @@ const int LINE_NUM_SIZE = 7;
 const int VIEWPORT_THRESHOLD = 4;
 int TAB_SIZE;
 bool AUTO_INDENT;
+bool AUTO_CLOSE;
 
 void tui_run(EditorState *es) {
   SettingsBucket **config = config_load();
 
-  FILE *f = fopen("log", "a"); fprintf(f, "%s\n", config[hashmap_hash("tab_size")]->settings[0].key); fclose(f);
   ConfigValue item_value;
 
   hashmap_get_value(config, "tab_size", &item_value);
@@ -20,6 +20,9 @@ void tui_run(EditorState *es) {
 
   hashmap_get_value(config, "auto_indent", &item_value);
   AUTO_INDENT = item_value.b;
+
+  hashmap_get_value(config, "autoclose_brackets", &item_value);
+  AUTO_CLOSE = item_value.b;
 
   setlocale(LC_ALL, "");
   struct notcurses_options ncopts = {0};
@@ -64,7 +67,16 @@ void tui_run(EditorState *es) {
       if (ncinput_ctrl_p(&ni)) {
         handle_ctrl_combo(es, key);
       } else if (key_type == WRITEABLE) {
-        editor_insert_char(es, ni.eff_text[0]);
+        if (AUTO_CLOSE) {
+          if (ni.eff_text[0] == '{') {editor_insert_char(es, '{'); editor_insert_char(es, '}'); es->cursor_col--;}
+          else if (ni.eff_text[0] == '[') {editor_insert_char(es, '['); editor_insert_char(es, ']'); es->cursor_col--;}
+          else if (ni.eff_text[0] == '(') {editor_insert_char(es, '('); editor_insert_char(es, ')'); es->cursor_col--;}
+          else if (ni.eff_text[0] == '"') {editor_insert_char(es, '"'); editor_insert_char(es, '"'); es->cursor_col--;}
+          else if (ni.eff_text[0] == '\'') {editor_insert_char(es, '\''); editor_insert_char(es, '\''); es->cursor_col--;}
+          else {editor_insert_char(es, ni.eff_text[0]);}
+        } else {
+          editor_insert_char(es, ni.eff_text[0]);
+        }
       } else if (key_type == MOVEMENT) {
         update_cursor_pos(es, key);
       } else if (key_type == FUNCTIONAL) {
@@ -78,13 +90,23 @@ void tui_run(EditorState *es) {
           if (ncinput_shift_p(&ni)) {
             editor_create_row(es, es->cursor_row - 1);
           } else {
+            int prev_col = es->cursor_col;
+            int prev_len = editor_row_len(es, es->cursor_row) - 1;
             editor_create_row(es, es->cursor_row);
             if (AUTO_INDENT) {
-              int len = editor_row_len(es, es->cursor_row - 1) - 1;
-              char *logical_text = malloc(len);
+              char *logical_text = malloc(prev_len);
               editor_get_row_text(es, es->cursor_row - 1, logical_text);
-              if (logical_text[len - 1] == '{' || logical_text[len - 1] == ':') {
-                indent(es);
+              if (prev_col == prev_len) {
+                if (logical_text[prev_len - 1] == '{' || logical_text[prev_len - 1] == ':') {
+                  indent(es);
+                }
+              } else if (prev_col == prev_len - 1) {
+                if (logical_text[prev_len - 2] == '{') {
+                    indent(es);
+                    editor_create_row(es, es->cursor_row);
+                    es->cursor_row--;
+                    es->cursor_col += TAB_SIZE;
+                }
               }
               int sp = 0;
               while (logical_text[sp] == ' ') {
