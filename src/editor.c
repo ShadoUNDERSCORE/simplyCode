@@ -40,9 +40,7 @@ void editor_backspace_char(EditorState *es) {
   if (es->cursor_col > 0) {
     buffer_backspace_char(es->buffer, es->cursor_row, es->cursor_col);
     es->cursor_col = es->buffer->rows[es->cursor_row]->gap_start;
-  } // else if (es->cursor_col == 0) {
-
-  //}
+  }
   return;
 }
 
