@@ -65,8 +65,8 @@ void tui_run(EditorState *es) {
 
   CommandStack undo_stack = {0};
   CommandStack redo_stack = {0};
-  stack_init(&undo_stack);
-  stack_init(&redo_stack);
+  history_stack_init(&undo_stack);
+  history_stack_init(&redo_stack);
   CommandStage staged_cmd = {0};
 
   while (es->main_loop_running) {
@@ -77,14 +77,14 @@ void tui_run(EditorState *es) {
       if (ncinput_ctrl_p(&ni)) {
         handle_ctrl_combo(es, key, &undo_stack, &redo_stack, &staged_cmd.command);
       } else if (key_type == WRITEABLE) {
-        manage_staged_command(&undo_stack, &redo_stack, &staged_cmd,
-                              es->cursor_row, es->cursor_col, INSERT, ni.eff_text[0]);
+        history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd,
+                                                es->cursor_row, es->cursor_col, INSERT, ni.eff_text[0]);
         if (AUTO_CLOSE) {
           editor_insert_char(es, ni.eff_text[0]);
           for (int i = 0; i < AUTO_CLOSE_N_SYMBOLS; i++) {
             if (AUTO_CLOSE_OPENS[i] == ni.eff_text[0]) {
-              manage_staged_command(&undo_stack, &redo_stack, &staged_cmd,
-                                    es->cursor_row, es->cursor_col, INSERT, AUTO_CLOSE_CLOSES[i]);
+              history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd,
+                                                      es->cursor_row, es->cursor_col, INSERT, AUTO_CLOSE_CLOSES[i]);
               editor_insert_char(es, AUTO_CLOSE_CLOSES[i]);
               es->cursor_col--;
             }
@@ -98,7 +98,8 @@ void tui_run(EditorState *es) {
         if (key == NCKEY_BACKSPACE) {
           char *logical_text = malloc(editor_row_len(es, es->cursor_row));
           editor_get_row_text(es, es->cursor_row, logical_text);
-          manage_staged_command(&undo_stack, &redo_stack, &staged_cmd, es->cursor_row, es->cursor_col, DELETE, logical_text[es->cursor_col - 1]);
+          history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd, es->cursor_row,
+                                                  es->cursor_col, DELETE, logical_text[es->cursor_col - 1]);
           free(logical_text);
           if (es->cursor_col == 0) {
             editor_delete_row(es);
@@ -106,7 +107,8 @@ void tui_run(EditorState *es) {
             editor_backspace_char(es);
           }
         } else if (key == NCKEY_RETURN) {
-          manage_staged_command(&undo_stack, &redo_stack, &staged_cmd, es->cursor_row + 1, 0, INSERT, '\n');
+          history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd,
+                                                  es->cursor_row + 1, 0, INSERT, '\n');
           if (ncinput_shift_p(&ni)) {
             editor_create_row(es, es->cursor_row - 1);
           } else {
@@ -123,7 +125,7 @@ void tui_run(EditorState *es) {
               } // else if (prev_col == prev_len - 1) {
                 // if (logical_text[prev_len - 2] == '{') {
                 //     indent(es, &undo_stack, &redo_stack, &staged_cmd);
-                //     manage_staged_command(&undo_stack, &redo_stack, &staged_cmd, es->cursor_row + 1, 0, INSERT, '\n');
+                //     history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd, es->cursor_row + 1, 0, INSERT, '\n');
                 //     editor_create_row(es, es->cursor_row);
                 //     es->cursor_row--;
                 //     es->cursor_col += TAB_SIZE;
@@ -203,7 +205,8 @@ void update_cursor_pos(EditorState *es, uint32_t key) {
   return;
 }
 
-void handle_ctrl_combo(EditorState *es, uint32_t key, CommandStack *undo_stack, CommandStack *redo_stack, InputCommand *staged_cmd) {
+void handle_ctrl_combo(EditorState *es, uint32_t key, CommandStack *undo_stack, CommandStack *redo_stack,
+                       InputCommand *staged_cmd) {
   switch (key) {
     case 'Q':
       es->main_loop_running = false;
@@ -216,32 +219,8 @@ void handle_ctrl_combo(EditorState *es, uint32_t key, CommandStack *undo_stack, 
       editor_save_to_file(es);
       break;
     case 'Z':
-      if (staged_cmd->data) add_command(undo_stack, redo_stack, staged_cmd);
-      if (undo_stack->len < 1) break;
-      InputCommand history_data = {0};
-      undo(undo_stack, redo_stack, &history_data);
-      if (history_data.type == INSERT) {
-        es->cursor_row = history_data.row;
-        es->cursor_col = history_data.col_end + 1;
-        if (history_data.data[0] == '\n') {
-          int size = history_data.col_end - history_data.col_start;
-          for (; size > 0; size--) {
-            editor_backspace_char(es);
-          }
-          editor_delete_row(es);
-        } else {
-          int size = history_data.col_end - history_data.col_start + 1;
-          for (; size > 0; size--) {
-            editor_backspace_char(es);
-          }
-        }
-      } else {
-        es->cursor_row = history_data.row;
-        es->cursor_col = history_data.col_end - 1;
-        for (int i = history_data.data_len - 1; i > -1; i--) {
-          editor_insert_char(es, history_data.data[i]);
-        }
-      }
+      if (staged_cmd->data) history_add_command(undo_stack, redo_stack, staged_cmd);
+      if (undo_stack->len > 0) history_undo(es, undo_stack, redo_stack);
       break;
     default:
       return;
@@ -321,7 +300,7 @@ void draw_screen(EditorState *es, struct ncplane *p, int max_rows) {
 
 void indent(EditorState *es, CommandStack *undo_stack, CommandStack *redo_stack, CommandStage *staged_cmd) {
   for (int i = 0; i < TAB_SIZE; i++) {
-    manage_staged_command(undo_stack, redo_stack, staged_cmd, es->cursor_row, es->cursor_col, INSERT, ' ');
+    history_update_and_check_staged_command(undo_stack, redo_stack, staged_cmd, es->cursor_row, es->cursor_col, INSERT, ' ');
     editor_insert_char(es, ' ');
   }
 }

@@ -2,7 +2,6 @@
 #define TUI_H
 
 #include "editor.h"
-#include "../include/undo.h"
 
 #include <notcurses/notcurses.h>
 
