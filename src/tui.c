@@ -65,8 +65,8 @@ void tui_run(EditorState *es) {
 
   CommandStack undo_stack = {0};
   CommandStack redo_stack = {0};
-  history_stack_init(&undo_stack);
-  history_stack_init(&redo_stack);
+  history_stack_init(&undo_stack, 'u');
+  history_stack_init(&redo_stack, 'r');
   CommandStage staged_cmd = {0};
 
   while (es->main_loop_running) {

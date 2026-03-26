@@ -5,7 +5,7 @@
 
 #include "buffer.h"
 
-#define STACK_SIZE 100
+#define STACK_SIZE 5
 
 // BUFFER MANAGEMENT
 typedef struct {
@@ -39,6 +39,7 @@ typedef struct {
   InputCommand stack[STACK_SIZE];
   int len;
   int top;
+  char type;
 } CommandStack;
 
 typedef struct {
@@ -58,7 +59,7 @@ int editor_row_len(EditorState *es, int row);
 void editor_get_row_text(EditorState *es, int row, char *logical_text);
 
 // HISTORY MANAGEMENT (Undo/Redo)
-void history_stack_init(CommandStack *stack);
+void history_stack_init(CommandStack *stack, char type);
 void history_update_and_check_staged_command(CommandStack *undo_stack, CommandStack *redo_stack, CommandStage *staged_cmd, int cur_row, int cur_col, CMDType cmd_type, char new_char);
 void history_add_command(CommandStack *undo_stack, CommandStack *redo_stack, InputCommand *new_cmd);
 void history_undo(EditorState *es, CommandStack *undo_stack, CommandStack *redo_stack);

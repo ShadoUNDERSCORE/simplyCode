@@ -63,9 +63,10 @@ void editor_get_row_text(EditorState *es, int row, char *logical_text) {
 
 // HISTORY
 
-void history_stack_init(CommandStack *stack) {
+void history_stack_init(CommandStack *stack, char type) {
   stack->len = 0;
-  stack->top = 0;
+  stack->top = -1;
+  stack->type = type;
   return;
 }
 
@@ -97,6 +98,9 @@ void _stack_pop(CommandStack *stack) {
     return;
   }
   stack->top = (stack->top - 1) % STACK_SIZE;
+  if (stack->top < 0) {
+    stack->top = stack->len;
+  }
   stack->len--;
   return;
 }
@@ -114,7 +118,7 @@ void _init_staged_command(CommandStage *staged_cmd, int cur_row, int cur_col, CM
 }
 
 void history_add_command(CommandStack *undo_stack, CommandStack *redo_stack, InputCommand *new_cmd) {
-  memset(redo_stack, 0, sizeof(*redo_stack));
+  memset(redo_stack->stack, 0, (STACK_SIZE * sizeof(InputCommand *)));
   _stack_push(undo_stack, new_cmd);
   new_cmd->type = 0;
   new_cmd->data_len = 0;
