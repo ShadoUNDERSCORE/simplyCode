@@ -63,14 +63,12 @@ void editor_get_row_text(EditorState *es, int row, char *logical_text) {
 
 // HISTORY
 
-void history_stack_init(CommandStack *stack, char type) {
+void history_stack_init(CommandStack *stack) {
   stack->len = 0;
   stack->top = -1;
-  stack->type = type;
   return;
 }
 
-// TODO: FIX STACK CIRCLE MATH
 void _stack_push(CommandStack *stack, InputCommand *new_cmd) {
   stack->top = (stack->top + 1) % STACK_SIZE;
   if (stack->len < STACK_SIZE) stack->len++;
@@ -141,8 +139,9 @@ void history_update_and_check_staged_command(CommandStack *undo_stack, CommandSt
     is_init = true;
   }
   // Update staged command if meets all reqs
+  int next_col = staged_cmd->command.type == INSERT ? staged_cmd->command.col_end + 1 : staged_cmd->command.col_end - 1;
   if ((cur_row == staged_cmd->command.row &&
-      (cur_col == (staged_cmd->command.col_end + 1) || cur_col == (staged_cmd->command.col_end - 1)) &&
+      cur_col == next_col &&
       cmd_type == staged_cmd->command.type &&
       time(NULL) < (staged_cmd->last_action + 5)) ||
       is_init
@@ -176,7 +175,7 @@ void history_undo(EditorState *es, CommandStack *undo_stack, CommandStack *redo_
     es->cursor_row = history_data.row;
     es->cursor_col = history_data.col_end + 1;
     if (history_data.data[0] == '\n') {
-      int size = history_data.col_end - history_data.col_start;
+      int size = history_data.col_end + 1;
       for (; size > 0; size--) {
         editor_backspace_char(es);
       }
@@ -190,8 +189,12 @@ void history_undo(EditorState *es, CommandStack *undo_stack, CommandStack *redo_
   } else {
     es->cursor_row = history_data.row;
     es->cursor_col = history_data.col_end - 1;
-    for (int i = history_data.data_len - 1; i > -1; i--) {
-      editor_insert_char(es, history_data.data[i]);
+    if (history_data.data[0] == '\n') {
+      editor_create_row(es, es->cursor_row);
+    } else {
+      for (int i = history_data.data_len - 1; i > -1; i--) {
+        editor_insert_char(es, history_data.data[i]);
+      }
     }
   }
 
@@ -202,7 +205,40 @@ void history_undo(EditorState *es, CommandStack *undo_stack, CommandStack *redo_
   return;
 }
 
-// void redo(CommandStack *undo_stack, CommandStack *redo_stack) {
-//
-// }
+void history_redo(EditorState *es, CommandStack *undo_stack, CommandStack *redo_stack) {
+  if (redo_stack->stack[redo_stack->top].data_len < 1) return;
+
+  InputCommand history_data = redo_stack->stack[redo_stack->top];
+  if (history_data.type == INSERT) {
+    es->cursor_row = history_data.row;
+    es->cursor_col = history_data.col_start;
+    if (history_data.data[0] == '\n') {
+      int size = history_data.col_start - history_data.col_end + 1;
+      for (; size > 0; size--) {
+        editor_backspace_char(es);
+      }
+      editor_delete_row(es);
+    } else {
+      int size = history_data.col_start - history_data.col_end + 1;
+      for (; size > 0; size--) {
+        editor_backspace_char(es);
+      }
+    }
+  } else {
+    es->cursor_row = history_data.row;
+    es->cursor_col = history_data.col_start;
+    if (history_data.data[0] == '\n') {
+      es->cursor_row = history_data.row - 1;
+      editor_create_row(es, es->cursor_row);
+    } else {
+      for (int i = 0; i < history_data.data_len; i++) {
+        editor_insert_char(es, history_data.data[i]);
+      }
+    }
+  }
+
+  redo_stack->stack[redo_stack->top].type = redo_stack->stack[redo_stack->top].type == INSERT ? DELETE : INSERT;
+  _stack_push(undo_stack, &redo_stack->stack[redo_stack->top]);
+  _stack_pop(redo_stack);
+}
 

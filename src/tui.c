@@ -65,8 +65,8 @@ void tui_run(EditorState *es) {
 
   CommandStack undo_stack = {0};
   CommandStack redo_stack = {0};
-  history_stack_init(&undo_stack, 'u');
-  history_stack_init(&redo_stack, 'r');
+  history_stack_init(&undo_stack);
+  history_stack_init(&redo_stack);
   CommandStage staged_cmd = {0};
 
   while (es->main_loop_running) {
@@ -98,17 +98,19 @@ void tui_run(EditorState *es) {
         if (key == NCKEY_BACKSPACE) {
           char *logical_text = malloc(editor_row_len(es, es->cursor_row));
           editor_get_row_text(es, es->cursor_row, logical_text);
-          history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd, es->cursor_row,
-                                                  es->cursor_col, DELETE, logical_text[es->cursor_col - 1]);
-          free(logical_text);
           if (es->cursor_col == 0) {
             editor_delete_row(es);
+            history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd, es->cursor_row,
+                                                   es->cursor_col + 1, DELETE, '\n');
           } else {
+            history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd, es->cursor_row,
+                                                   es->cursor_col, DELETE, logical_text[es->cursor_col - 1]);
             editor_backspace_char(es);
           }
+          free(logical_text);
         } else if (key == NCKEY_RETURN) {
           history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd,
-                                                  es->cursor_row + 1, 0, INSERT, '\n');
+                                                  es->cursor_row + 1, es->cursor_col, INSERT, '\n');
           if (ncinput_shift_p(&ni)) {
             editor_create_row(es, es->cursor_row - 1);
           } else {
@@ -221,6 +223,9 @@ void handle_ctrl_combo(EditorState *es, uint32_t key, CommandStack *undo_stack, 
     case 'Z':
       if (staged_cmd->data) history_add_command(undo_stack, redo_stack, staged_cmd);
       if (undo_stack->len > 0) history_undo(es, undo_stack, redo_stack);
+      break;
+    case 'R':
+      if (redo_stack->len > 0) history_redo(es, undo_stack, redo_stack);
       break;
     default:
       return;
