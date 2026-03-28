@@ -140,11 +140,14 @@ void history_update_and_check_staged_command(CommandStack *undo_stack, CommandSt
   }
   // Update staged command if meets all reqs
   int next_col = staged_cmd->command.type == INSERT ? staged_cmd->command.col_end + 1 : staged_cmd->command.col_end - 1;
-  if ((cur_row == staged_cmd->command.row &&
-      cur_col == next_col &&
-      cmd_type == staged_cmd->command.type &&
-      time(NULL) < (staged_cmd->last_action + 5)) ||
-      is_init
+  if ((
+    staged_cmd->command.data[0] != '\n' &&
+    cur_row == staged_cmd->command.row &&
+    cur_col == next_col &&
+    cmd_type == staged_cmd->command.type &&
+    time(NULL) < (staged_cmd->last_action + 5
+    )) ||
+    is_init
   ) {
     if (staged_cmd->command.data_cap < staged_cmd->command.data_len + 1) {
       staged_cmd->command.data_cap += 16;
@@ -175,10 +178,6 @@ void history_undo(EditorState *es, CommandStack *undo_stack, CommandStack *redo_
     es->cursor_row = history_data.row;
     es->cursor_col = history_data.col_end + 1;
     if (history_data.data[0] == '\n') {
-      int size = history_data.col_end + 1;
-      for (; size > 0; size--) {
-        editor_backspace_char(es);
-      }
       editor_delete_row(es);
     } else {
       int size = history_data.col_end - history_data.col_start + 1;
