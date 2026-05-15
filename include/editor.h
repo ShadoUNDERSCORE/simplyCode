@@ -15,6 +15,8 @@ typedef struct {
   int v_scroll_offset;
   int h_scroll_offset;
   bool dirty;
+  bool esc_mode;
+  bool paste_mode;
   char *filename;
   bool main_loop_running;
 } EditorState;

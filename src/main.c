@@ -33,6 +33,9 @@ int main(int argc, char *argv[]) {
     es->v_scroll_offset = 0;
     es->h_scroll_offset = 0;
     es->buffer = buf;
+    es->dirty = false;
+    es->esc_mode = false;
+    es->paste_mode = false;
     es->filename = argv[1];
     es->main_loop_running = true;
     tui_run(es);

@@ -4,6 +4,7 @@
 #include <locale.h>
 #include <unistd.h>
 
+#define ESC_CMD_LEN 5
 const int LINE_NUM_SIZE = 7;
 const int VIEWPORT_THRESHOLD = 4;
 int TAB_SIZE;
@@ -34,6 +35,13 @@ void tui_run(EditorState *es) {
 
   struct notcurses *nc = notcurses_init(&ncopts, NULL);
   if(!nc) return;
+  printf("\x1b[?2004h");
+  fflush(stdout);
+  struct esc_cmd_t {
+    char cmd[ESC_CMD_LEN];
+    int len;
+  };
+  struct esc_cmd_t esc_cmd = {};
 
   unsigned int max_rows, max_cols;
   notcurses_stddim_yx(nc, &max_rows, &max_cols);
@@ -76,21 +84,46 @@ void tui_run(EditorState *es) {
       enum key_t key_type = get_key_type(key);
       if (ncinput_ctrl_p(&ni)) {
         handle_ctrl_combo(es, key, &undo_stack, &redo_stack, &staged_cmd.command);
-      } else if (key_type == WRITEABLE) {
-        history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd,
-                                                es->cursor_row, es->cursor_col, INSERT, ni.eff_text[0]);
-        if (AUTO_CLOSE) {
-          editor_insert_char(es, ni.eff_text[0]);
-          for (int i = 0; i < AUTO_CLOSE_N_SYMBOLS; i++) {
-            if (AUTO_CLOSE_OPENS[i] == ni.eff_text[0]) {
-              history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd,
-                                                      es->cursor_row, es->cursor_col, INSERT, AUTO_CLOSE_CLOSES[i]);
-              editor_insert_char(es, AUTO_CLOSE_CLOSES[i]);
-              es->cursor_col--;
+      } else if (key_type == WRITEABLE || key == NCKEY_ESC) {
+        if (key == NCKEY_ESC) {
+          es->esc_mode = true;
+        } else if (es->esc_mode == true) {
+          FILE *f = fopen("log", "a"); fprintf(f, "%c\n", key); fclose(f);
+          esc_cmd.cmd[esc_cmd.len] = (char)ni.eff_text[0];
+          esc_cmd.len++;
+          FILE *f2 = fopen("log", "a"); fprintf(f2, "%s\n", esc_cmd.cmd); fclose(f2);
+          if (esc_cmd.len == ESC_CMD_LEN) {
+            if (!strcmp(esc_cmd.cmd, "[200~")) {
+              FILE *f1 = fopen("log", "a"); fprintf(f1, "PASTE_MODE\n"); fclose(f1);
+              es->paste_mode = true;
+              es->esc_mode = false;
+              esc_cmd.len = 0;
+            } else if (!strcmp(esc_cmd.cmd, "[201~")) {
+              FILE *f3 = fopen("log", "a"); fprintf(f3, "EXT_PASTE_MODE\n"); fclose(f3);
+              es->paste_mode = false;
+              es->esc_mode = false;
+              esc_cmd.len = 0;
+            } else {
+              // add esc_cmd to buffer
+              es->esc_mode = false;
             }
           }
         } else {
-          editor_insert_char(es, ni.eff_text[0]);
+          history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd,
+                                                  es->cursor_row, es->cursor_col, INSERT, ni.eff_text[0]);
+          if (AUTO_CLOSE && !es->paste_mode) {
+            editor_insert_char(es, ni.eff_text[0]);
+            for (int i = 0; i < AUTO_CLOSE_N_SYMBOLS; i++) {
+              if (AUTO_CLOSE_OPENS[i] == ni.eff_text[0]) {
+                history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd,
+                                                        es->cursor_row, es->cursor_col, INSERT, AUTO_CLOSE_CLOSES[i]);
+                editor_insert_char(es, AUTO_CLOSE_CLOSES[i]);
+                es->cursor_col--;
+              }
+            }
+          } else {
+            editor_insert_char(es, ni.eff_text[0]);
+          }
         }
       } else if (key_type == MOVEMENT) {
         update_cursor_pos(es, key);
@@ -117,7 +150,7 @@ void tui_run(EditorState *es) {
             int prev_col = es->cursor_col;
             int prev_len = editor_row_len(es, es->cursor_row) - 1;
             editor_create_row(es, es->cursor_row);
-            if (AUTO_INDENT) {
+            if (AUTO_INDENT && !es->paste_mode) {
               char *logical_text = malloc(prev_len);
               editor_get_row_text(es, es->cursor_row - 1, logical_text);
               if (prev_col == prev_len) {
@@ -158,6 +191,8 @@ void tui_run(EditorState *es) {
       notcurses_render(nc);
     }
   }
+  printf("\x1b[?2004l");
+  fflush(stdout);
   notcurses_stop(nc);
   if (staged_cmd.command.data) free(staged_cmd.command.data);
   return;
