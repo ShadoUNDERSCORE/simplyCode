@@ -32,7 +32,9 @@ typedef struct {
   char *data;
   int data_cap;
   int data_len;
-  int row;
+  bool is_multiline;
+  int row_start;
+  int row_end;
   int col_start;
   int col_end;
 } InputCommand;

@@ -88,23 +88,20 @@ void tui_run(EditorState *es) {
         if (key == NCKEY_ESC) {
           es->esc_mode = true;
         } else if (es->esc_mode == true) {
-          FILE *f = fopen("log", "a"); fprintf(f, "%c\n", key); fclose(f);
           esc_cmd.cmd[esc_cmd.len] = (char)ni.eff_text[0];
           esc_cmd.len++;
-          FILE *f2 = fopen("log", "a"); fprintf(f2, "%s\n", esc_cmd.cmd); fclose(f2);
           if (esc_cmd.len == ESC_CMD_LEN) {
             if (!strcmp(esc_cmd.cmd, "[200~")) {
-              FILE *f1 = fopen("log", "a"); fprintf(f1, "PASTE_MODE\n"); fclose(f1);
+              staged_cmd.command.is_multiline = true;
               es->paste_mode = true;
               es->esc_mode = false;
               esc_cmd.len = 0;
             } else if (!strcmp(esc_cmd.cmd, "[201~")) {
-              FILE *f3 = fopen("log", "a"); fprintf(f3, "EXT_PASTE_MODE\n"); fclose(f3);
               es->paste_mode = false;
               es->esc_mode = false;
               esc_cmd.len = 0;
             } else {
-              // add esc_cmd to buffer
+              // TODO: add esc_cmd to buffer
               es->esc_mode = false;
             }
           }
@@ -157,15 +154,7 @@ void tui_run(EditorState *es) {
                 if (logical_text[prev_len - 1] == '{' || logical_text[prev_len - 1] == ':') {
                   indent(es, &undo_stack, &redo_stack, &staged_cmd);
                 }
-              } // else if (prev_col == prev_len - 1) {
-                // if (logical_text[prev_len - 2] == '{') {
-                //     indent(es, &undo_stack, &redo_stack, &staged_cmd);
-                //     history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd, es->cursor_row + 1, 0, INSERT, '\n');
-                //     editor_create_row(es, es->cursor_row);
-                //     es->cursor_row--;
-                //     es->cursor_col += TAB_SIZE;
-                // }
-              // }
+              }
               int sp = 0;
               while (logical_text[sp] == ' ') {
                 sp++;
