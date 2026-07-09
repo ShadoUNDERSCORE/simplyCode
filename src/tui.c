@@ -142,7 +142,7 @@ void tui_run(EditorState *es) {
           history_update_and_check_staged_command(&undo_stack, &redo_stack, &staged_cmd,
                                                   es->cursor_row + 1, es->cursor_col, INSERT, '\n');
           if (ncinput_shift_p(&ni)) {
-            editor_create_row(es, es->cursor_row - 1);
+            editor_create_row(es, es->cursor_row);
           } else {
             int prev_col = es->cursor_col;
             int prev_len = editor_row_len(es, es->cursor_row) - 1;

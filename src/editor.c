@@ -148,15 +148,23 @@ void history_update_and_check_staged_command(CommandStack *undo_stack, CommandSt
   // Update staged command if meets all reqs
   int next_col = staged_cmd->command.type == INSERT ? staged_cmd->command.col_end + 1 : staged_cmd->command.col_end - 1;
   if (
-    (staged_cmd->command.is_multiline == true && time(NULL) < (staged_cmd->last_action + 2)) ||
+    (is_init == true) ||
     (
-      staged_cmd->command.is_multiline == false &&
-      staged_cmd->command.data[0] != '\n' &&
-      staged_cmd->command.row_start == cur_row &&
-      cur_col == next_col &&
-      time(NULL) < (staged_cmd->last_action + 5)
-    ) ||
-    (is_init == true)
+      (staged_cmd->command.type == cmd_type) &&
+      (
+        (
+          staged_cmd->command.is_multiline == true &&
+          time(NULL) < (staged_cmd->last_action + 2)
+        ) ||
+        (
+          staged_cmd->command.is_multiline == false &&
+          staged_cmd->command.data[0] != '\n' &&
+          staged_cmd->command.row_start == cur_row &&
+          cur_col == next_col &&
+          time(NULL) < (staged_cmd->last_action + 5)
+        )
+      )
+    )
   ) {
     if (staged_cmd->command.data_cap < staged_cmd->command.data_len + 1) {
       staged_cmd->command.data_cap += 16;
@@ -176,7 +184,7 @@ void history_update_and_check_staged_command(CommandStack *undo_stack, CommandSt
     }
     staged_cmd->command.data[staged_cmd->command.data_len] = new_char;
     staged_cmd->command.data_len++;
-    if (new_char == '\n') staged_cmd->command.col_end = -1;
+    // if (new_char == '\n') staged_cmd->command.col_end = -1;
   }
 }
 
